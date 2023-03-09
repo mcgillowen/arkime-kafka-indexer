@@ -1,0 +1,150 @@
+version: "3"
+
+services:
+  traffic-indexer:
+    image: ghcr.io/mcgillowen/arkime-kafka-indexer:latest
+    #entrypoint: "sleep 3000"
+    ports:
+      - 8080:8080
+    environment:
+      KAFKA_CONSUMER_TOPIC: test-cons
+      KAFKA_CONSUMER_GROUP_NAME: test-group
+      KAFKA_CONSUMER_BROKERS: kafka-1:9092
+      KAFKA_PRODUCER_BROKERS: kafka-1:9092
+      KAFKA_PRODUCER_TOPIC: test-prod
+      ELASTIC_SERVICE: elasticsearch
+      ELASTIC_INDEXER_INSTANCES: "1"
+      ELASTIC_CLIENT_RELOAD_INTERVAL: "5m"
+      CONSUMER_CHANNEL_BUFFER_SIZE: "100"
+      LOG_LEVEL: debug
+      KAFKA_CONSUMER_INCREMENTAL_REBALANCE: "true"
+      KAFKA_CONSUMER_OFFSET_COMMIT_INTERVAL: 5
+    restart: unless-stopped
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - elasticsearch
+
+  traffic-indexer1:
+    image: ghcr.io/mcgillowen/arkime-kafka-indexer:latest
+    #entrypoint: "sleep 3000"
+    ports:
+      - 8090:8080
+    environment:
+      KAFKA_CONSUMER_TOPIC: test-cons
+      KAFKA_CONSUMER_GROUP_NAME: test-group
+      KAFKA_CONSUMER_BROKERS: kafka-1:9092
+      ELASTIC_SERVICE: elasticsearch
+      ELASTIC_INDEXER_INSTANCES: "1"
+      ELASTIC_CLIENT_RELOAD_INTERVAL: "5m"
+      CONSUMER_CHANNEL_BUFFER_SIZE: "100"
+      LOG_LEVEL: debug
+      KAFKA_CONSUMER_INCREMENTAL_REBALANCE: "true"
+      KAFKA_CONSUMER_OFFSET_COMMIT_INTERVAL: 5
+    restart: unless-stopped
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - elasticsearch
+
+  traffic-indexer2:
+    image: ghcr.io/mcgillowen/arkime-kafka-indexer:latest
+    #entrypoint: "sleep 3000"
+    ports:
+      - 8091:8080
+    environment:
+      KAFKA_CONSUMER_TOPIC: test-cons
+      KAFKA_CONSUMER_GROUP_NAME: test-group
+      KAFKA_CONSUMER_BROKERS: kafka-1:9092
+      ELASTIC_SERVICE: elasticsearch
+      ELASTIC_INDEXER_INSTANCES: "1"
+      ELASTIC_CLIENT_RELOAD_INTERVAL: "5m"
+      CONSUMER_CHANNEL_BUFFER_SIZE: "100"
+      LOG_LEVEL: debug
+      KAFKA_CONSUMER_INCREMENTAL_REBALANCE: "true"
+      KAFKA_CONSUMER_OFFSET_COMMIT_INTERVAL: 5
+    restart: unless-stopped
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - elasticsearch
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+
+  kafka-1:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENERS: PLAINTEXT://kafka-1:9092,PLAINTEXT_HOST://kafka-1:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+
+  kafka-2:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 39092:39092
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092,PLAINTEXT_HOST://localhost:39092
+      KAFKA_LISTENERS: PLAINTEXT://kafka-2:9092,PLAINTEXT_HOST://kafka-2:39092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8081:8080
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:9092
+    depends_on:
+      - kafka-1
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
+    container_name: elasticsearch
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+      - cluster.routing.allocation.disk.threshold_enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    cap_add:
+      - IPC_LOCK
+    ports:
+      - 9200:9200
+      - 9300:9300
+
+  kibana:
+    container_name: kibana
+    image: docker.elastic.co/kibana/kibana:7.17.1
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - 5601:5601
+    depends_on:
+      - elasticsearch

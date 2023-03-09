@@ -1,0 +1,35 @@
+name: goreleaser
+
+on:
+  push:
+    # run only against tags
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - run: git fetch --force --tags --prune
+      - uses: actions/setup-go@v4
+        with:
+          go-version: stable
+      - run: go install github.com/joerdav/xc/cmd/xc@latest
+      #- name: release dry run
+      #  run: xc release-dry-run
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: release publish
+        run: xc release ${{ secrets.GITHUB_TOKEN }}

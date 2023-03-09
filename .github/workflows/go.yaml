@@ -1,0 +1,27 @@
+name: Go package
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  Checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
+
+      - name: Install XC for running scripts in readme
+        run: go install github.com/joerdav/xc/cmd/xc@latest
+      - name: Install CI dependencies
+        run: xc deps
+      - name: Install module dependencies
+        run: go get .
+      - name: Lint module
+        run: xc lint
+      - name: Test module
+        run: xc test
