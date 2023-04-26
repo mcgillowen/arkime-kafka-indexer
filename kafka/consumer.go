@@ -80,6 +80,17 @@ func NewConsumer(
 	return &cons
 }
 
+// UseTLS configures librdkafka to use TLS.
+func (c *Consumer) UseTLS(
+	caLocation, certLocation, keyLocation, keyPassword string,
+) {
+	_ = c.kafkaConfig.SetKey("security.protcol", "ssl")
+	_ = c.kafkaConfig.SetKey("ssl.ca.location", caLocation)
+	_ = c.kafkaConfig.SetKey("ssl.certificate.location", certLocation)
+	_ = c.kafkaConfig.SetKey("ssl.key.location", keyLocation)
+	_ = c.kafkaConfig.SetKey("ssl.key.password", keyPassword)
+}
+
 // Start starts the consumption of messages from Kafka and forwards the values to the provided channel.
 //
 // If the context is cancelled, it pauses consumption and closes the channel to signal to the
