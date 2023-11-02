@@ -4,6 +4,7 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![CodeQL](https://github.com/mcgillowen/arkime-kafka-indexer/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/mcgillowen/arkime-kafka-indexer/actions/workflows/github-code-scanning/codeql)
 [![codebeat badge](https://codebeat.co/badges/885e32a1-4bf3-4222-9e3d-ceccae2f7654)](https://codebeat.co/projects/github-com-mcgillowen-arkime-kafka-indexer-main)
+[![goreportcard](https://goreportcard.com/badge/github.com/mcgillowen/arkime-kafka-indexer)](https://goreportcard.com/report/github.com/mcgillowen/arkime-kafka-indexer)
 # Arkime Kafka Indexer
 
 An Elasticsearch indexer for Arkime SPI sent through Kafka using the Arkime [Kafka plugin](https://arkime.com/settings#kafka).
