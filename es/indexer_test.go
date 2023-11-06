@@ -65,7 +65,10 @@ func TestIndexer_sendToES(t *testing.T) {
 	}
 	mocktrans.RoundTripFn = func(req *http.Request) (*http.Response, error) { return mocktrans.Response, nil }
 
-	esClient, err := elasticsearch.NewClient(elasticsearch.Config{Transport: &mocktrans})
+	esClient, err := elasticsearch.NewClient(elasticsearch.Config{
+		Transport:            &mocktrans,
+		UseResponseCheckOnly: true,
+	})
 	assert.NoError(t, err, "there should be no error creating the ES client")
 
 	indexer := &Indexer{
@@ -80,10 +83,6 @@ func TestIndexer_sendToES(t *testing.T) {
 		mocktrans.Response.Body = io.NopCloser(strings.NewReader(`{"took":0,"errors":false}`))
 
 		mockMetrics := new(mockIndexerMetrics)
-
-		mockMetrics.On("BulkIndexCountInc")
-		mockMetrics.On("IndexedDocumentsCountAdd", float64(0))
-		mockMetrics.On("IndexedDocumentsBytesAdd", float64(0))
 
 		indexer.metrics = mockMetrics
 		indexer.logger = tst.Logger()

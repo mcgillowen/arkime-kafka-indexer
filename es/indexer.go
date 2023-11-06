@@ -104,6 +104,7 @@ const (
 	defaultMaxBufferedBytes  = 10 * 1024 * 1024 // 10Mb
 	defaultMaxDeadPercentage = 10
 	defaultDiscoverInterval  = time.Hour
+	minimumBufferSize        = 5 // chose 5 since it's the minimum required for a bulk action, 2 empty JSON bodies ({}) with a line feed
 )
 
 // NewIndexer creates a new Indexer instance with the provided client.
@@ -250,9 +251,13 @@ func (i *Indexer) Start(
 
 func (i *Indexer) sendToES(in *bytebufferpool.ByteBuffer, logger zerolog.Logger) *bytebufferpool.ByteBuffer {
 	defer i.bulkPool.Put(in)
-	i.metrics.BulkIndexCountInc()
 
 	indexedDocsBytes := len(in.B)
+	if indexedDocsBytes < minimumBufferSize {
+		return nil
+	}
+
+	i.metrics.BulkIndexCountInc()
 
 	resp, err := i.client.Bulk(bytes.NewReader(in.B), i.client.Bulk.WithTimeout(i.indexerConfig.bulkTimeout))
 	if err != nil {
