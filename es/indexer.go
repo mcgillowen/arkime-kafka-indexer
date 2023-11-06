@@ -64,6 +64,7 @@ func testClientConnection(client *elasticsearch.Client) error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to test client connection: %w", errPingingCluster)
 	}
+
 	return nil
 }
 
@@ -174,6 +175,7 @@ func (i *Indexer) Start(
 	if errorChan != nil {
 		defer close(errorChan)
 	}
+
 	defer logger.Info().Msg("indexer has stopped")
 
 	ticker := time.NewTicker(i.indexerConfig.flushInterval)
@@ -183,10 +185,12 @@ func (i *Indexer) Start(
 		if in == nil {
 			return
 		}
+
 		if errorChan == nil {
 			i.msgPool.Put(in)
 			return
 		}
+
 		if in.Len() < 1 {
 			i.msgPool.Put(in)
 			return
@@ -217,12 +221,16 @@ func (i *Indexer) Start(
 			if !ok {
 				logger.Info().Msg("consumer channel is closed, final flush of buffer to ES")
 				bulker.finalFlush()
+
 				return nil
 			}
+
 			logger.Debug().Msg("read message from channel")
+
 			if logger.GetLevel() == zerolog.TraceLevel {
 				logger.Trace().Bytes("msg", msg.B).Send()
 			}
+
 			if err := bulker.bulk(msg); err != nil {
 				return fmt.Errorf("bulking after reading from channel: %w", err)
 			}
@@ -230,9 +238,11 @@ func (i *Indexer) Start(
 			if err := i.CheckESStatus(); err != nil {
 				return fmt.Errorf("checking ES status after ticker ticked: %w", err)
 			}
+
 			if err := bulker.bulk(nil); err != nil {
 				return fmt.Errorf("bulking after ticker ticked: %w", err)
 			}
+
 			ticker.Reset(i.indexerConfig.flushInterval)
 		}
 	}
@@ -241,65 +251,83 @@ func (i *Indexer) Start(
 func (i *Indexer) sendToES(in *bytebufferpool.ByteBuffer, logger zerolog.Logger) *bytebufferpool.ByteBuffer {
 	defer i.bulkPool.Put(in)
 	i.metrics.BulkIndexCountInc()
+
 	indexedDocsBytes := len(in.B)
+
 	resp, err := i.client.Bulk(bytes.NewReader(in.B), i.client.Bulk.WithTimeout(i.indexerConfig.bulkTimeout))
 	if err != nil {
 		logger.Error().Err(err).Msgf("error sending bulk request")
 		i.metrics.BulkIndexErrorCountInc()
+
 		return nil
 	}
+
 	defer resp.Body.Close()
 	logger.Debug().Msg("sent bulk request")
 
 	if resp.IsError() {
 		i.metrics.BulkIndexErrorCountInc()
+
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			logger.Error().Err(err).Msgf("error reading response body")
 			return nil
 		}
+
 		logger.Error().Bytes("body", body).Msgf("request failed")
+
 		return nil
 	}
 
 	jsonBody := esutil.BulkIndexerResponse{}
+
 	err = json.NewDecoder(resp.Body).Decode(&jsonBody)
 	if err != nil {
 		logger.Error().Err(err).Msg("error unmarshaling response body")
 		return nil
 	}
+
 	if !jsonBody.HasErrors {
 		i.metrics.IndexedDocumentsCountAdd(float64(len(jsonBody.Items)))
 		i.metrics.IndexedDocumentsBytesAdd(float64(indexedDocsBytes))
+
 		return nil
 	}
+
 	out := i.msgPool.Get()
 	failedItems := 0
 	bulkLines := bytes.SplitAfter(in.B, []byte{'\n'})
+
 	for index, item := range jsonBody.Items {
 		if indexObj, ok := item["index"]; ok {
 			if indexObj.Error.Type == "" {
 				continue
 			}
+
 			_, err = out.Write(bulkLines[index*2])
 			if err != nil {
 				logger.Error().Err(err).Msg("failed to write ES action line from indexing error to buffer")
 			}
+
 			_, err = out.Write(bulkLines[index*2+1])
 			if err != nil {
 				logger.Error().Err(err).Msg("failed to write ES content line from indexing error to buffer")
 			}
+
 			logger.Error().
 				Str("es_index", indexObj.Index).
 				Str("es_id", indexObj.DocumentID).
 				Any("error", indexObj.Error).
 				Msg("error indexing in bulk request")
+
 			failedItems++
+
 			i.metrics.SessionIndexingFailCountInc()
 		} else {
 			logger.Error().Msg("unknown structure in JSON")
 		}
 	}
+
 	i.metrics.IndexedDocumentsCountAdd(float64(len(jsonBody.Items) - failedItems))
 	i.metrics.IndexedDocumentsBytesAdd(float64(indexedDocsBytes - out.Len()))
 
@@ -320,10 +348,12 @@ func (i *Indexer) CheckESStatus() error {
 		if !ok {
 			deadConnections++
 		}
+
 		if cm.IsDead {
 			deadConnections++
 		}
 	}
+
 	deadPercentage := int(float32(deadConnections) / float32(totalConnections) * 100) //nolint:gomnd // standard multiplier for percentage
 
 	i.logger.Debug().
@@ -348,5 +378,6 @@ func (i *Indexer) CheckESStatus() error {
 	}
 
 	i.logger.Debug().Msg("client reloaded because too many dead connections")
+
 	return nil
 }

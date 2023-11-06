@@ -38,8 +38,8 @@ type indexerMetrics interface {
 	bulkerMetrics
 	BulkIndexCountInc()
 	BulkIndexErrorCountInc()
-	IndexedDocumentsCountAdd(float64)
-	IndexedDocumentsBytesAdd(float64)
+	IndexedDocumentsCountAdd(count float64)
+	IndexedDocumentsBytesAdd(bytes float64)
 	SessionIndexingFailCountInc()
 	ESClientReloadInc()
 }
@@ -48,5 +48,5 @@ type indexerMetrics interface {
 // We define it so that testing is easier using mocking.
 type bufferPool interface {
 	Get() *bytebufferpool.ByteBuffer
-	Put(*bytebufferpool.ByteBuffer)
+	Put(buffer *bytebufferpool.ByteBuffer)
 }

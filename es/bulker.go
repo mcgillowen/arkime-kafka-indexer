@@ -91,12 +91,15 @@ func (b *bulker) bulk(msg *bytebufferpool.ByteBuffer) error {
 	if err != nil {
 		return fmt.Errorf("writing to bulk buffer: %w", err)
 	}
+
 	b.msgPool.Put(msg)
+
 	b.bulkedMsgCount++
 
 	if b.msgLimit == b.bulkedMsgCount {
 		b.flush("msg_limit")
 	}
+
 	return nil
 }
 

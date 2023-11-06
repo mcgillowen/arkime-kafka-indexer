@@ -112,15 +112,19 @@ func (c *Consumer) Start(
 		select {
 		case <-ctx.Done():
 			c.logger.Info().Msgf("context has been cancelled, shutting down consumer: %v", ctx.Err())
+
 			partitions, err := consumer.Assignment()
 			if err != nil {
 				c.logger.Error().Err(err).Msgf("error getting partition assignments")
 			}
+
 			err = consumer.Pause(partitions)
 			if err != nil {
 				c.logger.Error().Err(err).Msgf("error pausing consumption")
 			}
+
 			c.logger.Info().Msg("stopping kafka consumer")
+
 			return nil
 		default:
 			kafkaEvent := consumer.Poll(int(c.pollTimeout.Milliseconds()))
@@ -135,20 +139,25 @@ func (c *Consumer) Start(
 					Int64("offset", int64(event.TopicPartition.Offset)).
 					Logger()
 				log.Debug().Msg("consumed message")
+
 				if log.GetLevel() == zerolog.TraceLevel {
 					log.Trace().Msg(event.String())
 				}
 
 				c.metrics.MsgConsumedSizeObserve(float64(len(event.Value)))
 				msgBuf := c.msgPool.Get()
+
 				writeLen, _ := msgBuf.Write(event.Value)
 				if writeLen != len(event.Value) {
 					c.logger.Error().Msg("length written to msg buffer is not equal to message value")
 					c.msgPool.Put(msgBuf)
+
 					continue
 				}
 				msgChan <- msgBuf
+
 				c.logger.Debug().Msg("sent message to channel")
+
 				if c.logger.GetLevel() == zerolog.TraceLevel {
 					c.logger.Trace().Msg(msgBuf.String())
 				}
@@ -175,10 +184,12 @@ func (c *Consumer) rebalanceCb(kafkaCons *kafka.Consumer, event kafka.Event) err
 			Any("partitions", kafkaEvent.Partitions).
 			Msg("revoking partitions")
 		c.metrics.RebalanceInc("revocation")
+
 		if kafkaCons.AssignmentLost() {
 			c.logger.Warn().Msg("assignmnent lost involuntarily")
 			c.metrics.LostPartitionAssignmentInc()
 		}
 	}
+
 	return nil
 }

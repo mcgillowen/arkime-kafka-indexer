@@ -19,9 +19,10 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/mcgillowen/arkime-kafka-indexer/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
+
+	"github.com/mcgillowen/arkime-kafka-indexer/metrics"
 )
 
 // WithTransport allows setting a custom http.RoundTripper instance.
@@ -70,8 +71,10 @@ func RetryBackoffFunc(
 ) func(attempt int) time.Duration {
 	return func(attempt int) time.Duration {
 		metrics.BulkIndexRetryCountInc()
+
 		backoffTime := minimumBackoff + time.Duration(math.Exp2(float64(attempt)))*10*time.Millisecond
 		logger.Debug().Dur("backoff_time", backoffTime).Int("attempt", attempt).Msg("retrying")
+
 		return backoffTime
 	}
 }

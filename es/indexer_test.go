@@ -132,6 +132,7 @@ func TestIndexer_sendToES(t *testing.T) {
 			reqBody, err := io.ReadAll(req.Body)
 			require.NoError(t, err, "no error reading body")
 			require.Equal(t, []byte(bufferString), reqBody, "request body should match sent in buffer")
+
 			return mocktrans.Response, nil
 		}
 

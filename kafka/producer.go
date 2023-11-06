@@ -97,11 +97,13 @@ func (p *Producer) Start(ctx context.Context, msgChan <-chan *bytebufferpool.Byt
 	if err != nil {
 		return fmt.Errorf("error instantiating kafka producer on %q: %w", p.bootstrapServer, err)
 	}
+
 	defer func() {
 		unflushedMsgs := producer.Flush(int(p.flushInterval.Milliseconds()))
 		if unflushedMsgs > 0 {
 			p.logger.Error().Int("unflushed_msgs", unflushedMsgs).Msgf("Failed to flush messages to broker")
 		}
+
 		producer.Close()
 	}()
 	p.logger.Debug().Msg("*kafka.Producer created")
@@ -110,6 +112,7 @@ func (p *Producer) Start(ctx context.Context, msgChan <-chan *bytebufferpool.Byt
 	if p.logDeliveryReports {
 		deliveryChan = make(chan kafka.Event)
 		defer close(deliveryChan)
+
 		go p.deliveryReportsLogger(ctx, deliveryChan)
 	}
 
@@ -117,6 +120,7 @@ func (p *Producer) Start(ctx context.Context, msgChan <-chan *bytebufferpool.Byt
 		func(msg *bytebufferpool.ByteBuffer) {
 			defer p.msgPool.Put(msg)
 			p.logger.Debug().Msg("read message from channel")
+
 			if p.logger.GetLevel() == zerolog.TraceLevel {
 				p.logger.Trace().Msg(msg.String())
 			}
@@ -134,17 +138,22 @@ func (p *Producer) Start(ctx context.Context, msgChan <-chan *bytebufferpool.Byt
 					// Producer queue is full, wait for messages
 					// to be delivered then try again.
 					time.Sleep(p.fullQueueCooldown)
+
 					if err := producer.Produce(prodMsg, deliveryChan); err != nil {
 						p.logger.Error().Err(err).Msgf("error producing message async after full queue and waiting %s", p.fullQueueCooldown)
 					}
+
 					return
 				}
+
 				p.logger.Error().Err(err).Msg("error producing message async")
+
 				return
 			}
 
 			log := p.logger.With().Int32("partition", kafka.PartitionAny).Str("topic", p.topic).Logger()
 			log.Debug().Msg("produced message")
+
 			if log.GetLevel() == zerolog.TraceLevel {
 				log.Trace().Msg(msg.String())
 			}
@@ -161,6 +170,7 @@ func (p *Producer) deliveryReportsLogger(
 	deliveryChan <-chan kafka.Event,
 ) {
 	logger := p.logger.With().Str("component", "delivery-reports-logger").Logger()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -173,8 +183,10 @@ func (p *Producer) deliveryReportsLogger(
 				if m.TopicPartition.Error != nil {
 					logger.Error().Err(m.TopicPartition.Error).Msg("delivery failed")
 					p.metrics.UnsuccessfullyProducedMsgInc()
+
 					continue
 				}
+
 				logger.Debug().Any("kafka_message", m).Msg("received a delivery report")
 				p.metrics.SuccessfullyProducedMsgInc()
 			case kafka.Error:

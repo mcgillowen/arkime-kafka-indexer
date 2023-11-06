@@ -24,6 +24,14 @@ linters-settings:
     require-specific: true
   paralleltest:
     ignore-missing: true
+  gci:
+    skip-generated: true
+    sections:
+      - standard
+      - default
+      - prefix(github.com/mcgillowen/arkime-kafka-indexer)
+      - blank
+      - dot
 
 issues:
   exclude-rules:
@@ -32,99 +40,22 @@ issues:
         - funlen
 
 linters:
-  enable:
-    - asasalint
-    - asciicheck
-    - bidichk
-    - bodyclose
-    - containedctx
-    - contextcheck
-    - decorder
-    - dogsled
-    - dupl
-    - dupword
-    - durationcheck
-    - errcheck
-    - errchkjson
-    - errname
-    - errorlint
-    - execinquery
-    - exhaustive
-    - exportloopref
-    - forbidigo
-    - forcetypeassert
-    - funlen
-    - ginkgolinter
-    - gocheckcompilerdirectives
-    - gochecknoglobals
-    - gochecknoinits
-    - goconst
-    - gocritic
-    - gocyclo
-    - godot
-    - godox
-    - goerr113
-    - gofmt
-    - gofumpt
-    - goheader
-    - goimports
-    - gomnd
-    - gomoddirectives
-    - gomodguard
-    - goprintffuncname
-    - gosec
-    - gosimple
-    - govet
-    - grouper
-    - importas
-    - ineffassign
-    - interfacebloat
-    - ireturn
-    - loggercheck
-    - maintidx
-    - makezero
-    - misspell
-    - musttag
-    - nakedret
-    - nestif
-    - nilerr
-    - nilnil
-    - noctx
-    - nolintlint
-    - nonamedreturns
-    - nosprintfhostport
-    - paralleltest
-    - prealloc
-    - predeclared
-    - promlinter
-    - reassign
-    - revive
-    - rowserrcheck
-    - sqlclosecheck
-    - staticcheck
-    - stylecheck
-    - tagliatelle
-    - tenv
-    - testableexamples
-    - testpackage
-    - thelper
-    - tparallel
-    - typecheck
-    - unconvert
-    - unparam
-    - unused
-    - usestdlibvars
-    - varnamelen
-    - wastedassign
-    - whitespace
-    - wrapcheck
+  enable-all: true
 
   disable:
     - exhaustruct
-    - wsl
     - nlreturn
-    - gci
     - cyclop
     - gocognit
     - lll
     - depguard
+    - nosnakecase # Deprecated
+    - maligned # Deprecated
+    - interfacer # Deprecated
+    - ifshort # Deprecated
+    - scopelint # Deprecated
+    - structcheck # Deprecated
+    - varcheck # Deprecated
+    - deadcode # Deprecated
+    - golint # Deprecated
+    - exhaustivestruct # Deprecated

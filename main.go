@@ -103,11 +103,13 @@ func main() {
 	promMetrics, promReg, server := setupMetricsAndServer(env, logger)
 
 	ctx := context.Background()
+
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	reloadChan := make(chan os.Signal, 1)
 	signal.Notify(reloadChan, syscall.SIGHUP)
+
 	defer func() {
 		signal.Stop(reloadChan)
 	}()
@@ -126,16 +128,20 @@ func main() {
 			select {
 			case <-reloadChan:
 				logger.Debug().Msg("checking ES status")
+
 				if err := indexer.CheckESStatus(); err != nil {
 					return fmt.Errorf("error reloading indexer ES client: %w", err)
 				}
 			case <-ctx.Done():
 				logger.Debug().Msg("context is finished")
+
 				ctx, cancel = context.WithTimeout(context.Background(), defaultHTTPServerShutdownTimeout)
 				defer cancel()
+
 				if err := server.Shutdown(ctx); err != nil { //nolint:contextcheck,lll // this is a bug https://github.com/kkHAIKE/contextcheck/issues/2
 					return fmt.Errorf("error shutting down http server: %w", err)
 				}
+
 				return nil
 			}
 		}
@@ -145,10 +151,12 @@ func main() {
 		if errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("http server stopped unexpectedly: %w", err)
 		}
+
 		return nil
 	})
 
 	consumerChan := make(chan *bytebufferpool.ByteBuffer, env.ConsumerChannelBufferSize)
+
 	ctxPool.Go(func(ctx context.Context) error {
 		err := consumer.Start(
 			ctx,
@@ -157,18 +165,22 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("error in consumer: %w", err)
 		}
+
 		return nil
 	})
 	logger.Debug().Msg("started consumer goroutine")
 
 	errorChans := make([]<-chan *bytebufferpool.ByteBuffer, env.ElasticIndexerInstances)
+
 	for i := 0; i < env.ElasticIndexerInstances; i++ {
 		indexerNum := i
+
 		var errorChan chan *bytebufferpool.ByteBuffer
 		if producer != nil {
 			errorChan = make(chan *bytebufferpool.ByteBuffer, env.ErrorChannelBufferSize)
 			errorChans[indexerNum] = errorChan
 		}
+
 		ctxPool.Go(func(ctx context.Context) error {
 			err := indexer.Start(
 				consumerChan,
@@ -177,6 +189,7 @@ func main() {
 			if err != nil {
 				return fmt.Errorf("error in indexer-%d: %w", indexerNum, err)
 			}
+
 			return nil
 		})
 		logger.Debug().Msgf("started indexer %02d goroutine", indexerNum)
@@ -192,6 +205,7 @@ func main() {
 			if err != nil {
 				return fmt.Errorf("error in producer: %w", err)
 			}
+
 			return nil
 		})
 		logger.Debug().Msg("started producer goroutine")
@@ -208,7 +222,9 @@ func merge(ctxPool *pool.ContextPool, size int, incomingChans ...<-chan *bytebuf
 	if len(incomingChans) == 0 {
 		return nil
 	}
+
 	var wg conc.WaitGroup
+
 	out := make(chan *bytebufferpool.ByteBuffer, size)
 
 	// Start an output goroutine for each input channel in cs.  output
@@ -218,8 +234,10 @@ func merge(ctxPool *pool.ContextPool, size int, incomingChans ...<-chan *bytebuf
 			out <- n
 		}
 	}
+
 	for _, c := range incomingChans {
 		c := c
+
 		wg.Go(func() {
 			output(c)
 		})
@@ -232,9 +250,12 @@ func merge(ctxPool *pool.ContextPool, size int, incomingChans ...<-chan *bytebuf
 		if recPanic != nil {
 			return fmt.Errorf("panic in merge wait goroutine %w", recPanic.AsError())
 		}
+
 		close(out)
+
 		return nil
 	})
+
 	return out
 }
 
@@ -245,6 +266,7 @@ func printBuildInfo(logger zerolog.Logger) {
 	}
 
 	var arch, operatingSystem string
+
 	for _, buildSetting := range buildInfo.Settings {
 		switch buildSetting.Key {
 		case "GOARCH":
@@ -270,6 +292,7 @@ func processEnv(logger zerolog.Logger) envConfig {
 	if err := envconfig.Process("", &env); err != nil {
 		logger.Fatal().Err(err).Msg("failed to process ENV variables")
 	}
+
 	return env
 }
 
@@ -278,6 +301,7 @@ func setLogLevel(level string, logger zerolog.Logger) zerolog.Logger {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to parse log level")
 	}
+
 	return logger.Level(logLevel)
 }
 
@@ -293,6 +317,7 @@ func setupMetricsAndServer(env envConfig, logger zerolog.Logger) (*metrics.Metri
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to initialise prometheus metrics")
 	}
+
 	mux.Handle(env.MetricsPath, promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
 
 	server := &http.Server{
@@ -398,6 +423,7 @@ func setupKafka(
 				Str("component", "producer").
 				Logger(),
 		)
+
 		logger.Debug().Msg("initialised producer")
 	}
 

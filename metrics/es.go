@@ -146,7 +146,9 @@ func (ec *ESCollector) Collect(ch chan<- prometheus.Metric) {
 		connection, ok := connectionStringer.(estransport.ConnectionMetric)
 		if !ok {
 			ch <- prometheus.NewInvalidMetric(ec.invalidConnectionMetric, errInvalidConnection)
+
 			deadConnections++
+
 			continue
 		}
 		ch <- prometheus.MustNewConstMetric(

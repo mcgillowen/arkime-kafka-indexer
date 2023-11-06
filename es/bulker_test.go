@@ -38,6 +38,7 @@ func (mockBulkerPool) Put(_ *bytebufferpool.ByteBuffer) {}
 
 func Test_bulker_flush(t *testing.T) {
 	t.Parallel()
+
 	type fields struct {
 		flushCb      func(t *testing.T) func(buffer *bytebufferpool.ByteBuffer)
 		buffer       *bytebufferpool.ByteBuffer
@@ -45,9 +46,11 @@ func Test_bulker_flush(t *testing.T) {
 		flushedBytes float64
 		flushedMsgs  float64
 	}
+
 	type args struct {
 		reason string
 	}
+
 	tests := []struct {
 		name   string
 		fields fields
@@ -121,6 +124,7 @@ func Test_bulker_flush(t *testing.T) {
 
 func Test_bulker_bulk(t *testing.T) {
 	t.Parallel()
+
 	type fields struct {
 		flushCb      func(t *testing.T) func(buffer *bytebufferpool.ByteBuffer)
 		msgLimit     int
@@ -130,9 +134,11 @@ func Test_bulker_bulk(t *testing.T) {
 		flushedBytes float64
 		flushedMsgs  float64
 	}
+
 	type args struct {
 		msgs []*bytebufferpool.ByteBuffer
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields

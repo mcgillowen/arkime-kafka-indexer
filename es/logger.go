@@ -58,6 +58,7 @@ func (l *Logger) LogRoundTrip(
 	if req != nil && req.Body != nil && req.Body != http.NoBody {
 		nReq, _ = io.Copy(io.Discard, req.Body)
 	}
+
 	if res != nil && res.Body != nil && res.Body != http.NoBody {
 		nRes, _ = io.Copy(io.Discard, res.Body)
 	}
