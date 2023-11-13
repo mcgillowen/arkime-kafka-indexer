@@ -15,7 +15,6 @@
  */
 
 /*
-Package kafka contains all the components required to consume and produce Kafka
-messages.
+Package main contains the main func as well as some helper functions for setting up the indexer.
 */
-package kafka
+package main

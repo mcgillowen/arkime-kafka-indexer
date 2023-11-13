@@ -15,7 +15,9 @@
  */
 
 /*
-Package kafka contains all the components required to consume and produce Kafka
-messages.
+Package metrics contains the struct used for exposing Prometheus metrics and a
+collector that works to collect metrics from the ES client.
+
+The Metrics struct implements various *Metrics interfaces defined in other packages
 */
-package kafka
+package metrics

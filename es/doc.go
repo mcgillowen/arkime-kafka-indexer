@@ -15,7 +15,10 @@
  */
 
 /*
-Package kafka contains all the components required to consume and produce Kafka
-messages.
+Package es contains all the components required to communicate with
+Elasticsearch.
+
+The main component is the [es.Indexer] which takes the messages sent over a channel
+, bulks them together before sending them as a bulk to the ES Bulk API endpoint.
 */
-package kafka
+package es
