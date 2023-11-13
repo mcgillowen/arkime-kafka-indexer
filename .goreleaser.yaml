@@ -1,4 +1,7 @@
 # Make sure to check the documentation at https://goreleaser.com
+git:
+  prerelease_suffix: "-"
+
 before:
   hooks:
     # You may remove this if you don't use go modules.
