@@ -26,7 +26,6 @@ import (
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/rs/zerolog"
 	"github.com/rzajac/zltest"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/valyala/bytebufferpool"
@@ -72,7 +71,7 @@ func TestIndexer_sendToES(t *testing.T) {
 		Transport:            &mocktrans,
 		UseResponseCheckOnly: true,
 	})
-	assert.NoError(t, err, "there should be no error creating the ES client")
+	require.NoError(t, err, "there should be no error creating the ES client")
 
 	indexer := &Indexer{
 		bulkPool: mockIndexerPool{},

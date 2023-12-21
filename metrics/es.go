@@ -19,6 +19,7 @@ package metrics
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/estransport"
@@ -138,7 +139,7 @@ func (ec *ESCollector) Collect(ch chan<- prometheus.Metric) {
 			ec.clientResponsesMetric,
 			prometheus.CounterValue,
 			float64(count),
-			fmt.Sprint(statusCode),
+			strconv.Itoa(statusCode),
 		)
 	}
 
