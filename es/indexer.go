@@ -307,32 +307,31 @@ func (i *Indexer) sendToES(in *bytebufferpool.ByteBuffer, logger zerolog.Logger)
 	bulkLines := bytes.SplitAfter(in.B, []byte{'\n'})
 
 	for index, item := range jsonBody.Items {
-		if indexObj, ok := item["index"]; ok {
-			if indexObj.Error.Type == "" {
+		for action, actionItem := range item {
+			if actionItem.Error.Type == "" {
 				continue
 			}
 
 			_, err = out.Write(bulkLines[index*2])
 			if err != nil {
-				logger.Error().Err(err).Msg("failed to write ES action line from indexing error to buffer")
+				logger.Error().Err(err).Msg("failed to write ES action line from error to buffer")
 			}
 
 			_, err = out.Write(bulkLines[index*2+1])
 			if err != nil {
-				logger.Error().Err(err).Msg("failed to write ES content line from indexing error to buffer")
+				logger.Error().Err(err).Msg("failed to write ES content line from error to buffer")
 			}
 
 			logger.Error().
-				Str("es_index", indexObj.Index).
-				Str("es_id", indexObj.DocumentID).
-				Any("error", indexObj.Error).
-				Msg("error indexing in bulk request")
+				Str("es_action", action).
+				Str("es_index", actionItem.Index).
+				Str("es_id", actionItem.DocumentID).
+				Any("error", actionItem.Error).
+				Msg("error in bulk request")
 
 			failedItems++
 
 			i.metrics.SessionIndexingFailCountInc()
-		} else {
-			logger.Error().Msg("unknown structure in JSON")
 		}
 	}
 
