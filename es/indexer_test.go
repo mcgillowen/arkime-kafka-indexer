@@ -65,7 +65,6 @@ func TestIndexer_sendToES(t *testing.T) {
 			Header:     http.Header{"X-Elastic-Product": []string{"Elasticsearch"}},
 		},
 	}
-	mocktrans.RoundTripFn = func(req *http.Request) (*http.Response, error) { return mocktrans.Response, nil }
 
 	esClient, err := elasticsearch.NewClient(elasticsearch.Config{
 		Transport:            &mocktrans,
@@ -79,37 +78,33 @@ func TestIndexer_sendToES(t *testing.T) {
 		client:   esClient,
 	}
 
-	t.Run("no error response", func(t *testing.T) {
-		tst := zltest.New(t)
+	type buffers struct {
+		in, out *bytebufferpool.ByteBuffer
+	}
 
-		mocktrans.Response.Body = io.NopCloser(strings.NewReader(`{"took":0,"errors":false}`))
+	type testCase struct {
+		name               string
+		responseBody       io.ReadCloser
+		roundtripFn        func(req *http.Request) (*http.Response, error)
+		mockCalls          map[string][]interface{}
+		buffers            buffers
+		numLogErrorEntries int
+	}
 
-		mockMetrics := new(mockIndexerMetrics)
-
-		indexer.metrics = mockMetrics
-		indexer.logger = tst.Logger()
-
-		var (
-			inBuffer  = &bytebufferpool.ByteBuffer{}
-			outBuffer *bytebufferpool.ByteBuffer
-		)
-
-		if got := indexer.sendToES(inBuffer, tst.Logger()); !reflect.DeepEqual(got, outBuffer) {
-			t.Errorf("Indexer.sendToES() = %v, want %v", got, outBuffer)
-		}
-
-		errorEntries := tst.Filter(zerolog.ErrorLevel)
-		errorEntries.ExpLen(0)
-
-		mockMetrics.AssertExpectations(t)
-	})
-
-	t.Run("1 failed index", func(t *testing.T) {
-		tst := zltest.New(t)
-
-		bufferString := `{}
-{testspi}`
-		responseString := `{
+	testCases := []testCase{
+		{
+			name:         "no error response",
+			responseBody: io.NopCloser(strings.NewReader(`{"took":0,"errors":false}`)),
+			roundtripFn:  func(req *http.Request) (*http.Response, error) { return mocktrans.Response, nil },
+			mockCalls:    map[string][]interface{}{},
+			buffers: buffers{
+				in: &bytebufferpool.ByteBuffer{},
+			},
+			numLogErrorEntries: 0,
+		},
+		{
+			name: "1 failed index",
+			responseBody: io.NopCloser(strings.NewReader(`{
 "took":0,
 "errors":true,
 "items":[
@@ -124,43 +119,100 @@ func TestIndexer_sendToES(t *testing.T) {
 			}
 		}
 	}
-]}`
+]}`)),
+			roundtripFn: func(req *http.Request) (*http.Response, error) {
+				require.Equal(t, http.MethodPost, req.Method, "request needs to be a POST")
+				require.NotNil(t, req.Body, "body cannot be nil")
+				reqBody, err := io.ReadAll(req.Body)
+				require.NoError(t, err, "error reading body")
+				require.Equal(t, []byte(`{"index": {"_index": "test", "_id": "test"}}
+{"test":"spi"}`), reqBody, "request body should match sent in buffer")
 
-		mocktrans.Response.Body = io.NopCloser(strings.NewReader(responseString))
-		mocktrans.RoundTripFn = func(req *http.Request) (*http.Response, error) {
-			require.Equal(t, http.MethodPost, req.Method, "request needs to be a POST")
-			require.NotNil(t, req.Body, "body cannot be nil")
-			reqBody, err := io.ReadAll(req.Body)
-			require.NoError(t, err, "no error reading body")
-			require.Equal(t, []byte(bufferString), reqBody, "request body should match sent in buffer")
-
-			return mocktrans.Response, nil
+				return mocktrans.Response, nil
+			},
+			mockCalls: map[string][]interface{}{
+				"BulkIndexCountInc":           {},
+				"IndexedDocumentsCountAdd":    {float64(0)},
+				"IndexedDocumentsBytesAdd":    {float64(0)},
+				"SessionIndexingFailCountInc": {},
+			},
+			buffers: buffers{
+				in: &bytebufferpool.ByteBuffer{B: []byte(`{"index": {"_index": "test", "_id": "test"}}
+{"test":"spi"}`)},
+				out: &bytebufferpool.ByteBuffer{B: []byte(`{"index": {"_index": "test", "_id": "test"}}
+{"test":"spi"}`)},
+			},
+			numLogErrorEntries: 1,
+		},
+		{
+			name: "1 failed create",
+			responseBody: io.NopCloser(strings.NewReader(`{
+"took":0,
+"errors":true,
+"items":[
+	{
+		"create":{
+			"_index":"test",
+			"_id":"test",
+			"status":200,
+			"error":{
+				"type":"test",
+				"reason":"test"
+			}
 		}
+	}
+]}`)),
+			roundtripFn: func(req *http.Request) (*http.Response, error) {
+				require.Equal(t, http.MethodPost, req.Method, "request needs to be a POST")
+				require.NotNil(t, req.Body, "body cannot be nil")
+				reqBody, err := io.ReadAll(req.Body)
+				require.NoError(t, err, "error reading body")
+				require.Equal(t, []byte(`{"create": {"_index": "test", "_id": "test"}}
+{"test":"spi"}`), reqBody, "request body should match sent in buffer")
 
-		mockMetrics := new(mockIndexerMetrics)
+				return mocktrans.Response, nil
+			},
+			mockCalls: map[string][]interface{}{
+				"BulkIndexCountInc":           {},
+				"IndexedDocumentsCountAdd":    {float64(0)},
+				"IndexedDocumentsBytesAdd":    {float64(0)},
+				"SessionIndexingFailCountInc": {},
+			},
+			buffers: buffers{
+				in: &bytebufferpool.ByteBuffer{B: []byte(`{"create": {"_index": "test", "_id": "test"}}
+{"test":"spi"}`)},
+				out: &bytebufferpool.ByteBuffer{B: []byte(`{"create": {"_index": "test", "_id": "test"}}
+{"test":"spi"}`)},
+			},
+			numLogErrorEntries: 1,
+		},
+	}
 
-		mockMetrics.On("BulkIndexCountInc")
-		mockMetrics.On("IndexedDocumentsCountAdd", float64(0))
-		mockMetrics.On("IndexedDocumentsBytesAdd", float64(0))
-		mockMetrics.On("SessionIndexingFailCountInc")
+	for _, tc := range testCases {
+		testCase := tc
+		t.Run(testCase.name, func(t *testing.T) {
+			tst := zltest.New(t)
 
-		indexer.metrics = mockMetrics
-		indexer.logger = tst.Logger()
+			mocktrans.Response.Body = testCase.responseBody
+			mocktrans.RoundTripFn = testCase.roundtripFn
 
-		var (
-			inBuffer  = &bytebufferpool.ByteBuffer{B: []byte(bufferString)}
-			outBuffer = &bytebufferpool.ByteBuffer{B: []byte("{}\n{testspi}")}
-		)
+			mockMetrics := new(mockIndexerMetrics)
 
-		if got := indexer.sendToES(inBuffer, tst.Logger()); !reflect.DeepEqual(got, outBuffer) {
-			t.Errorf("Indexer.sendToES() = %v, want %v", got, outBuffer)
-		}
+			for name, args := range testCase.mockCalls {
+				mockMetrics.On(name, args...)
+			}
 
-		tst.Entries().Print()
+			indexer.metrics = mockMetrics
+			indexer.logger = tst.Logger()
 
-		errorEntries := tst.Filter(zerolog.ErrorLevel)
-		errorEntries.ExpLen(1)
+			if got := indexer.sendToES(testCase.buffers.in, tst.Logger()); !reflect.DeepEqual(got, testCase.buffers.out) {
+				t.Errorf("Indexer.sendToES() = %v, want %v", got, testCase.buffers.out)
+			}
 
-		mockMetrics.AssertExpectations(t)
-	})
+			errorEntries := tst.Filter(zerolog.ErrorLevel)
+			errorEntries.ExpLen(testCase.numLogErrorEntries)
+
+			mockMetrics.AssertExpectations(t)
+		})
+	}
 }

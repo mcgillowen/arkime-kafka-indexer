@@ -38,6 +38,7 @@ issues:
     - path: _test\.go
       linters:
         - funlen
+        - dupl
 
 linters:
   enable-all: true
