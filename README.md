@@ -14,6 +14,40 @@ most important since it is necessary for Arkime to function correctly. For an in
 use Kafka with Arkime see the [Arkimeet 2023 - Arkime Stream Processing with Kafka](https://youtu.be/FhNQwTyg218) talk
 ([slides](https://arkime.com/assets/Arkimeet2023-Arkime-Kafka.pdf)).
 
+## Usage
+
+This indexer is designed mainly for use with Arkime and its Kafka plugin but can also be used for indexing any Kafka
+messages that are formatted in the [ES Bulk format](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-bulk.html).
+
+The Kafka plugin needs to be configured with either `kafkaMsgFormat=bulk` or `kafkaMsgFormat=bulk1` and the `dbBulkSize`
+setting should be less than `1000000` since Kafka by default doesn't allow messages larger than `1MB`, if you intend to
+enrich the SPIs with a lot of extra information the `dbBulkSize` should be set accordingly or use `bulk1` but this also adds
+some extra processing overhead to the Kafka cluster.
+
+```
+plugins = kafka.so
+kafkaMsgFormat = bulk/bulk1
+dbBulkSize = 500000
+```
+
+The indexer can handle both `bulk` and `bulk1`, since the ES Bulk API is optimized for bulks larger than `1MB`, the SPIs
+get bulked together and then flushed when either a time, byte size or SPI count limit is reached, these are set using the following
+environment variables respectively `BULKER_FLUSH_INTERVAL`, `BULKER_MAX_BYTES` and `BULKER_MAX_MESSAGES`. These ENV vars should be
+used to tune the bulking to maximize performance, the `bulk_flush_reason_total` metrics can be used to deduce what values to change.
+
+The indexer can also republish SPIs that failed to be indexed into ES back to Kafka for reprocessing or something else,
+this is enabled by setting a producer topic using the `KAFKA_PRODUCER_TOPIC` ENV var, the other `KAFKA_PRODUCER_*` ENV vars
+should be set accordingly.
+
+### Limitations
+
+Currently there are a few limitations with the current implementation of the indexer, these are:
+
+* Only HTTP support for communicating with ES, as well as unauthenticated only.
+* No TLS support for Kafka.
+
+We are working to fix these limitations, but any help is welcome.
+
 ## Architecture
 
 This processor is architected in the following way (see diagram below), the main components are:
@@ -28,6 +62,25 @@ This processor is architected in the following way (see diagram below), the main
 The number of indexers can be configured, this enables parallel sends to the elasticsearch cluster which increases the throughput.
 
 ![Architecture](docs/architecture.png)
+
+## Installation
+
+The easiest way to install the indexer is to use the prebuilt Docker images available
+at ghcr.io/mcgillowen/arkime-kafka-indexer. These can be run using:
+
+```
+docker run -e KAFKA_CONSUMER_TOPIC=<topic> -e KAFKA_CONSUMER_GROUP_NAME=<group name> \
+           -e ELASTIC_SERVICE=<ES URL without http:// or port> ghcr.io/mcgillowen/arkime-kafka-indexer:latest
+```
+
+or take a look at the Docker Compose file in this repository.
+
+There are also binaries for `linux/amd64` and `darwin/amd64` on the [`Releases` page](https://github.com/mcgillowen/arkime-kafka-indexer/releases), we don't build other OS/arch combinations since we don't have systems to test them.
+
+It can also be installed the normal Go way:
+```
+go install github.com/mcgillowen/arkime-kafka-indexer@v0.1.2
+```
 
 ## Configuration
 

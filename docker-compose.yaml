@@ -1,7 +1,7 @@
 version: "3"
 
 services:
-  traffic-indexer:
+  kafka-indexer:
     image: ghcr.io/mcgillowen/arkime-kafka-indexer:latest
     #entrypoint: "sleep 3000"
     ports:
@@ -25,7 +25,7 @@ services:
       - kafka-2
       - elasticsearch
 
-  traffic-indexer1:
+  kafka-indexer1:
     image: ghcr.io/mcgillowen/arkime-kafka-indexer:latest
     #entrypoint: "sleep 3000"
     ports:
@@ -47,7 +47,7 @@ services:
       - kafka-2
       - elasticsearch
 
-  traffic-indexer2:
+  kafka-indexer2:
     image: ghcr.io/mcgillowen/arkime-kafka-indexer:latest
     #entrypoint: "sleep 3000"
     ports:
