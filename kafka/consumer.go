@@ -84,7 +84,7 @@ func NewConsumer(
 func (c *Consumer) UseTLS(
 	caLocation, certLocation, keyLocation, keyPassword string,
 ) {
-	_ = c.kafkaConfig.SetKey("security.protcol", "ssl")
+	_ = c.kafkaConfig.SetKey("security.protocol", "ssl")
 	_ = c.kafkaConfig.SetKey("ssl.ca.location", caLocation)
 	_ = c.kafkaConfig.SetKey("ssl.certificate.location", certLocation)
 	_ = c.kafkaConfig.SetKey("ssl.key.location", keyLocation)

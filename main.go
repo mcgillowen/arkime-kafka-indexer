@@ -50,10 +50,10 @@ type envConfig struct {
 	KafkaConsumerIncrementalRebalance     bool          `default:"false"                                                                         desc:"If the cooperative rebalancing strategy should be used"              envconfig:"KAFKA_CONSUMER_INCREMENTAL_REBALANCE"`
 	KafkaProducerBrokers                  string        `default:"localhost:9092"                                                                desc:"Kafka to produce to"                                                 envconfig:"KAFKA_PRODUCER_BROKERS"`
 	KafkaProducerTopic                    string        `desc:"Kafka topic to produce to"                                                        envconfig:"KAFKA_PRODUCER_TOPIC"`
-	KafkaSSLCALocation                    string        `envconfig:"KAFKA_SSL_CA_LOCATION"`
-	KafkaSSLCertLocation                  string        `envconfig:"KAFKA_SSL_CERT_LOCATION"`
-	KafkaSSLKeyLocation                   string        `envconfig:"KAFKA_SSL_KEY_LOCATION"`
-	KafkaSSLKeyPassword                   string        `envconfig:"KAFKA_SSL_KEY_PASSWORD"`
+	KafkaSSLCALocation                    string        `desc:"Path to the CA cert used for signing certs"                                       envconfig:"KAFKA_SSL_CA_LOCATION"`
+	KafkaSSLCertLocation                  string        `desc:"Path to the client certificate"                                                   envconfig:"KAFKA_SSL_CERT_LOCATION"`
+	KafkaSSLKeyLocation                   string        `desc:"Path to the client key"                                                           envconfig:"KAFKA_SSL_KEY_LOCATION"`
+	KafkaSSLKeyPassword                   string        `desc:"Password of the client key"                                                       envconfig:"KAFKA_SSL_KEY_PASSWORD"`
 	KafkaProducerMessageTimeout           time.Duration `default:"30s"                                                                           desc:"Produced message timeout"                                            envconfig:"KAFKA_PRODUCER_MSG_TIMEOUT"`
 	KafkaProducerMessageRetries           int           `default:"100"                                                                           desc:"Maximum of retries for a produced message"                           envconfig:"KAFKA_PRODUCER_MSG_RETRIES"`
 	KafkaProducerQueueFullCooldown        time.Duration `default:"1s"                                                                            desc:"How long to wait after a producer full queue error before retrying"  envconfig:"KAFKA_PRODUCER_FULL_QUEUE_COOLDOWN"`
@@ -152,7 +152,7 @@ func main() {
 	})
 	ctxPool.Go(func(ctx context.Context) error {
 		err := server.ListenAndServe() // Blocks!
-		if errors.Is(err, http.ErrServerClosed) {
+		if !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("http server stopped unexpectedly: %w", err)
 		}
 
