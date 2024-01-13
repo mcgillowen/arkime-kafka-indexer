@@ -39,6 +39,21 @@ The indexer can also republish SPIs that failed to be indexed into ES back to Ka
 this is enabled by setting a producer topic using the `KAFKA_PRODUCER_TOPIC` ENV var, the other `KAFKA_PRODUCER_*` ENV vars
 should be set accordingly.
 
+### Kafka with SSL/TLS
+
+Encrypted Kafka communication using SSL/TLS requires the following 4 ENV variables to be set:
+
+* `KAFKA_SSL_CA_LOCATION`: Path to the CA cert used for signing certs
+* `KAFKA_SSL_CERT_LOCATION`: Path to the client certificate
+* `KAFKA_SSL_KEY_LOCATION`: Path to the client key
+* `KAFKA_SSL_KEY_PASSWORD`: Path to the client key password
+
+Only if all 4 variables are set will SSL/TLS communication be enabled.
+
+The Docker compose stack is set up for using SSL/TLS, but the required certificates, keys and stores need to be generated before starting it. To generate the required files run the gen-aki-compose-certs.sh in the ssl folder.
+
+More information about using SSL with librdkafka (underlying Kafka library used) check out https://github.com/confluentinc/librdkafka/wiki/Using-SSL-with-librdkafka
+
 ### Limitations
 
 Currently there are a few limitations with the current implementation of the indexer, these are:
