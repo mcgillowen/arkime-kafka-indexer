@@ -79,6 +79,17 @@ func NewProducer(
 	return &prod
 }
 
+// UseTLS configures librdkafka to use TLS.
+func (p *Producer) UseTLS(
+	caLocation, certLocation, keyLocation, keyPassword string,
+) {
+	_ = p.kafkaConfig.SetKey("security.protocol", "ssl")
+	_ = p.kafkaConfig.SetKey("ssl.ca.location", caLocation)
+	_ = p.kafkaConfig.SetKey("ssl.certificate.location", certLocation)
+	_ = p.kafkaConfig.SetKey("ssl.key.location", keyLocation)
+	_ = p.kafkaConfig.SetKey("ssl.key.password", keyPassword)
+}
+
 // Start starts the production of Kafka messages with the values from the provided channel.
 //
 // If the inbound channel is closed the production stops.

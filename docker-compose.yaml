@@ -1,7 +1,7 @@
 version: "3"
 
 services:
-  kafka-indexer:
+  indexer:
     image: ghcr.io/mcgillowen/arkime-kafka-indexer:latest
     #entrypoint: "sleep 3000"
     ports:
@@ -19,95 +19,95 @@ services:
       LOG_LEVEL: debug
       KAFKA_CONSUMER_INCREMENTAL_REBALANCE: "true"
       KAFKA_CONSUMER_OFFSET_COMMIT_INTERVAL: 5
+      KAFKA_SSL_CA_LOCATION: /ssl/ca-cert
+      KAFKA_SSL_CERT_LOCATION: /ssl/client_indexer_client.pem
+      KAFKA_SSL_KEY_LOCATION: /ssl/client_indexer_client.key
+      KAFKA_SSL_KEY_PASSWORD: abcdefgh
     restart: unless-stopped
+    volumes:
+      - ./ssl:/ssl
     depends_on:
       - kafka-1
       - kafka-2
       - elasticsearch
-
-  kafka-indexer1:
-    image: ghcr.io/mcgillowen/arkime-kafka-indexer:latest
-    #entrypoint: "sleep 3000"
-    ports:
-      - 8090:8080
-    environment:
-      KAFKA_CONSUMER_TOPIC: test-cons
-      KAFKA_CONSUMER_GROUP_NAME: test-group
-      KAFKA_CONSUMER_BROKERS: kafka-1:9092
-      ELASTIC_SERVICE: elasticsearch
-      ELASTIC_INDEXER_INSTANCES: "1"
-      ELASTIC_CLIENT_RELOAD_INTERVAL: "5m"
-      CONSUMER_CHANNEL_BUFFER_SIZE: "100"
-      LOG_LEVEL: debug
-      KAFKA_CONSUMER_INCREMENTAL_REBALANCE: "true"
-      KAFKA_CONSUMER_OFFSET_COMMIT_INTERVAL: 5
-    restart: unless-stopped
-    depends_on:
-      - kafka-1
-      - kafka-2
-      - elasticsearch
-
-  kafka-indexer2:
-    image: ghcr.io/mcgillowen/arkime-kafka-indexer:latest
-    #entrypoint: "sleep 3000"
-    ports:
-      - 8091:8080
-    environment:
-      KAFKA_CONSUMER_TOPIC: test-cons
-      KAFKA_CONSUMER_GROUP_NAME: test-group
-      KAFKA_CONSUMER_BROKERS: kafka-1:9092
-      ELASTIC_SERVICE: elasticsearch
-      ELASTIC_INDEXER_INSTANCES: "1"
-      ELASTIC_CLIENT_RELOAD_INTERVAL: "5m"
-      CONSUMER_CHANNEL_BUFFER_SIZE: "100"
-      LOG_LEVEL: debug
-      KAFKA_CONSUMER_INCREMENTAL_REBALANCE: "true"
-      KAFKA_CONSUMER_OFFSET_COMMIT_INTERVAL: 5
-    restart: unless-stopped
-    depends_on:
-      - kafka-1
-      - kafka-2
-      - elasticsearch
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - 22181:2181
 
   kafka-1:
-    image: confluentinc/cp-kafka:latest
-    depends_on:
-      - zookeeper
+    image: confluentinc/cp-server:latest
     ports:
-      - 29092:29092
+    - 9012:9012
+    - 19092:9092
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_LISTENERS: PLAINTEXT://kafka-1:9092,PLAINTEXT_HOST://kafka-1:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093'
+      KAFKA_LISTENERS: 'SSL_HOST://localhost:19092,SSL://kafka-1:9092,CONTROLLER://kafka-1:9093'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_ADVERTISED_LISTENERS: SSL_HOST://localhost:19092,SSL://kafka-1:9092
+      CLUSTER_ID: '4L6g3nShT-eMCtK--X86sw'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,SSL_HOST:SSL,SSL:SSL'
+      KAFKA_SSL_KEYSTORE_FILENAME: broker_kafka-1_server.keystore.jks
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: creds
+      KAFKA_SSL_KEY_CREDENTIALS: creds
+      KAFKA_SSL_TRUSTSTORE_FILENAME: broker_kafka-1_server.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: creds
+      KAFKA_SSL_CLIENT_AUTH: required
+      KAFKA_SECURITY_INTER_BROKER_PROTOCOL: SSL
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+    volumes:
+      - ./ssl:/etc/kafka/secrets
 
   kafka-2:
-    image: confluentinc/cp-kafka:latest
-    depends_on:
-      - zookeeper
+    image: confluentinc/cp-server:latest
     ports:
-      - 39092:39092
+      - 9013:9013
+      - 29092:9092
     environment:
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092,PLAINTEXT_HOST://localhost:39092
-      KAFKA_LISTENERS: PLAINTEXT://kafka-2:9092,PLAINTEXT_HOST://kafka-2:39092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:9093,2@kafka-2:9093'
+      KAFKA_LISTENERS: 'SSL_HOST://localhost:29092,SSL://kafka-2:9092,CONTROLLER://kafka-2:9093'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_ADVERTISED_LISTENERS: SSL_HOST://localhost:29092,SSL://kafka-2:9092
+      CLUSTER_ID: '4L6g3nShT-eMCtK--X86sw'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,SSL_HOST:SSL,SSL:SSL'
+      KAFKA_SSL_KEYSTORE_FILENAME: broker_kafka-2_server.keystore.jks
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: creds
+      KAFKA_SSL_KEY_CREDENTIALS: creds
+      KAFKA_SSL_TRUSTSTORE_FILENAME: broker_kafka-2_server.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: creds
+      KAFKA_SSL_CLIENT_AUTH: required
+      KAFKA_SECURITY_INTER_BROKER_PROTOCOL: SSL
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+    volumes:
+      - ./ssl:/etc/kafka/secrets
+
+  kafka-3:
+    image: confluentinc/cp-server:latest
+    ports:
+      - 9014:9014
+      - 39092:9092
+    environment:
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093'
+      KAFKA_LISTENERS: 'SSL_HOST://localhost:39092,SSL://kafka-3:9092,CONTROLLER://kafka-3:9093'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_ADVERTISED_LISTENERS: SSL_HOST://localhost:39092,SSL://kafka-3:9092
+      CLUSTER_ID: '4L6g3nShT-eMCtK--X86sw'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,SSL_HOST:SSL,SSL:SSL'
+      KAFKA_SSL_KEYSTORE_FILENAME: broker_kafka-3_server.keystore.jks
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: creds
+      KAFKA_SSL_KEY_CREDENTIALS: creds
+      KAFKA_SSL_TRUSTSTORE_FILENAME: broker_kafka-3_server.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: creds
+      KAFKA_SSL_CLIENT_AUTH: required
+      KAFKA_SECURITY_INTER_BROKER_PROTOCOL: SSL
+      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+    volumes:
+      - ./ssl:/etc/kafka/secrets
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -116,6 +116,14 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:9092
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: SSL
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_LOCATION: /ssl/client_ui_client.keystore.jks
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_PASSWORD: "abcdefgh"
+      KAFKA_CLUSTERS_0_SSL_TRUSTSTORELOCATION: /ssl/client_ui_client.truststore.jks
+      KAFKA_CLUSTERS_0_SSL_TRUSTSTOREPASSWORD: "abcdefgh"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: '' # DISABLE COMMON NAME VERIFICATION
+    volumes:
+      - ./ssl:/ssl
     depends_on:
       - kafka-1
 
@@ -125,7 +133,7 @@ services:
     environment:
       - xpack.security.enabled=false
       - discovery.type=single-node
-      - cluster.routing.allocation.disk.threshold_enabled=false
+      - cluster.routing.alFILENAME.disk.threshold_enabled=false
     ulimits:
       memlock:
         soft: -1
