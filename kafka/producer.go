@@ -29,9 +29,7 @@ import (
 
 type Producer struct {
 	flushInterval      time.Duration
-	msgTimeout         time.Duration
 	fullQueueCooldown  time.Duration
-	msgRetries         int
 	logDeliveryReports bool
 	topic              string
 	bootstrapServer    string
@@ -59,8 +57,6 @@ func NewProducer(
 ) *Producer {
 	prod := Producer{
 		flushInterval:      flushInterval,
-		msgTimeout:         msgTimeout,
-		msgRetries:         msgRetries,
 		logDeliveryReports: logDeliveryReports,
 		fullQueueCooldown:  fullQueueCooldown,
 		topic:              topic,

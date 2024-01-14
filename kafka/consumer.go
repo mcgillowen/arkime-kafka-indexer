@@ -27,15 +27,13 @@ import (
 )
 
 type Consumer struct {
-	pollTimeout          time.Duration
-	topic                string
-	groupName            string
-	bootstrapServer      string
-	incrementalRebalance bool
-	kafkaConfig          kafka.ConfigMap
-	msgPool              *bytebufferpool.Pool
-	metrics              consumerMetrics
-	logger               zerolog.Logger
+	pollTimeout     time.Duration
+	topic           string
+	bootstrapServer string
+	kafkaConfig     kafka.ConfigMap
+	msgPool         *bytebufferpool.Pool
+	metrics         consumerMetrics
+	logger          zerolog.Logger
 }
 
 type consumerMetrics interface {
@@ -54,14 +52,12 @@ func NewConsumer(
 	logger zerolog.Logger,
 ) *Consumer {
 	cons := Consumer{
-		pollTimeout:          pollTimeout,
-		topic:                topic,
-		groupName:            groupID,
-		bootstrapServer:      bootstrapServer,
-		incrementalRebalance: incrementalRebalance,
-		kafkaConfig:          kafka.ConfigMap{},
-		msgPool:              msgPool,
-		metrics:              metrics,
+		pollTimeout:     pollTimeout,
+		topic:           topic,
+		bootstrapServer: bootstrapServer,
+		kafkaConfig:     kafka.ConfigMap{},
+		msgPool:         msgPool,
+		metrics:         metrics,
 		logger: logger.With().
 			Str("topic", topic).
 			Str("consumer_group", groupID).
@@ -127,17 +123,7 @@ func (c *Consumer) Start(
 		case <-ctx.Done():
 			c.logger.Info().Msgf("context has been cancelled, shutting down consumer: %v", ctx.Err())
 
-			partitions, err := consumer.Assignment()
-			if err != nil {
-				c.logger.Error().Err(err).Msgf("error getting partition assignments")
-			}
-
-			err = consumer.Pause(partitions)
-			if err != nil {
-				c.logger.Error().Err(err).Msgf("error pausing consumption")
-			}
-
-			c.logger.Info().Msg("stopping kafka consumer")
+			c.pauseConsumption(consumer)
 
 			return nil
 		default:
@@ -148,33 +134,7 @@ func (c *Consumer) Start(
 
 			switch event := kafkaEvent.(type) {
 			case *kafka.Message:
-				log := c.logger.With().
-					Int32("partition", event.TopicPartition.Partition).
-					Int64("offset", int64(event.TopicPartition.Offset)).
-					Logger()
-				log.Debug().Msg("consumed message")
-
-				if log.GetLevel() == zerolog.TraceLevel {
-					log.Trace().Msg(event.String())
-				}
-
-				c.metrics.MsgConsumedSizeObserve(float64(len(event.Value)))
-				msgBuf := c.msgPool.Get()
-
-				writeLen, _ := msgBuf.Write(event.Value)
-				if writeLen != len(event.Value) {
-					c.logger.Error().Msg("length written to msg buffer is not equal to message value")
-					c.msgPool.Put(msgBuf)
-
-					continue
-				}
-				msgChan <- msgBuf
-
-				c.logger.Debug().Msg("sent message to channel")
-
-				if c.logger.GetLevel() == zerolog.TraceLevel {
-					c.logger.Trace().Msg(msgBuf.String())
-				}
+				c.handleMessage(event, msgChan)
 			case kafka.Error:
 				return fmt.Errorf("kafka consumer error: %w", event)
 			}
@@ -206,4 +166,48 @@ func (c *Consumer) rebalanceCb(kafkaCons *kafka.Consumer, event kafka.Event) err
 	}
 
 	return nil
+}
+
+func (c *Consumer) pauseConsumption(consumer *kafka.Consumer) {
+	partitions, err := consumer.Assignment()
+	if err != nil {
+		c.logger.Error().Err(err).Msgf("error getting partition assignments")
+	}
+
+	err = consumer.Pause(partitions)
+	if err != nil {
+		c.logger.Error().Err(err).Msgf("error pausing consumption")
+	}
+
+	c.logger.Info().Msg("stopping kafka consumer")
+}
+
+func (c *Consumer) handleMessage(msg *kafka.Message, msgChan chan<- *bytebufferpool.ByteBuffer) {
+	log := c.logger.With().
+		Int32("partition", msg.TopicPartition.Partition).
+		Int64("offset", int64(msg.TopicPartition.Offset)).
+		Logger()
+	log.Debug().Msg("consumed message")
+
+	if log.GetLevel() == zerolog.TraceLevel {
+		log.Trace().Msg(msg.String())
+	}
+
+	c.metrics.MsgConsumedSizeObserve(float64(len(msg.Value)))
+	msgBuf := c.msgPool.Get()
+
+	writeLen, _ := msgBuf.Write(msg.Value)
+	if writeLen != len(msg.Value) {
+		c.logger.Error().Msg("length written to msg buffer is not equal to message value")
+		c.msgPool.Put(msgBuf)
+
+		return
+	}
+	msgChan <- msgBuf
+
+	c.logger.Debug().Msg("sent message to channel")
+
+	if c.logger.GetLevel() == zerolog.TraceLevel {
+		c.logger.Trace().Msg(msgBuf.String())
+	}
 }
