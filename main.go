@@ -106,9 +106,7 @@ func main() {
 	logger = setLogLevel(env.LogLevel, logger)
 	promMetrics, promReg, server := setupMetricsAndServer(env, logger)
 
-	ctx := context.Background()
-
-	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	reloadChan := make(chan os.Signal, 1)
@@ -189,6 +187,7 @@ func main() {
 			err := indexer.Start(
 				consumerChan,
 				errorChan,
+				indexerNum,
 			)
 			if err != nil {
 				return fmt.Errorf("error in indexer-%d: %w", indexerNum, err)
