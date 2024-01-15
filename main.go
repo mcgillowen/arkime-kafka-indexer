@@ -66,6 +66,11 @@ type envConfig struct {
 	BulkerMaxBytes                        int           `default:"10_485_760"                                                                    desc:"Maximum number of bytes to buffer before sending them to ES"         envconfig:"BULKER_MAX_BYTES"` // 10mb = 10 * 1024 * 1024
 	ElasticService                        string        `desc:"The address of an Elasticsearch node, the client will discover the rest of nodes" envconfig:"ELASTIC_SERVICE"                                                required:"true"`
 	ElasticServicePort                    string        `default:"9200"                                                                          desc:"The ES HTTP port"                                                    envconfig:"ELASTIC_SERVICE_PORT"`
+	ElasticUseHTTPS                       bool          `default:"false"                                                                         desc:"Should the ES client communicate using HTTPS"                        envconfig:"ELASTIC_USE_HTTPS"`
+	ElasticUsername                       string        `desc:"The username for ES basic authentication"                                         envconfig:"ELASTIC_USERNAME"`
+	ElasticPassword                       string        `desc:"The password for ES basic authentication"                                         envconfig:"ELASTIC_PASSWORD"`
+	ElasticAPIKey                         string        `desc:"The API key for ES authentication"                                                envconfig:"ELASTIC_API_KEY"`
+	ElasticServiceToken                   string        `desc:"The service token for ES authentication"                                          envconfig:"ELASTIC_SERVICE_TOKEN"`
 	ElasticIndexerInstances               int           `default:"1"                                                                             desc:"The number of parallel indexers to use"                              envconfig:"ELASTIC_INDEXER_INSTANCES"`
 	ElasticClientMaxRetries               int           `default:"10"                                                                            desc:"Number of retries when communicating with ES"                        envconfig:"ELASTIC_CLIENT_MAX_RETRIES"`
 	ElasticClientRetryStatuses            []int         `default:"502,503,504,429"                                                               desc:"Which HTTP status codes to retry"                                    envconfig:"ELASTIC_CLIENT_RETRY_STATUSES"`
@@ -106,9 +111,7 @@ func main() {
 	logger = setLogLevel(env.LogLevel, logger)
 	promMetrics, promReg, server := setupMetricsAndServer(env, logger)
 
-	ctx := context.Background()
-
-	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	reloadChan := make(chan os.Signal, 1)
@@ -187,6 +190,7 @@ func main() {
 			err := indexer.Start(
 				consumerChan,
 				errorChan,
+				indexerNum,
 			)
 			if err != nil {
 				return fmt.Errorf("error in indexer-%d: %w", indexerNum, err)
@@ -350,12 +354,16 @@ func setupIndexer(
 	}
 
 	indexer, err := es.NewIndexer(env.ElasticService, env.ElasticServicePort,
+		env.ElasticUseHTTPS,
 		msgPool,
 		promMetrics,
 		logger.With().
 			Str("component", "indexer").
 			Logger(),
 		es.WithTransport(esTransport),
+		es.WithBasicAuth(env.ElasticUsername, env.ElasticPassword),
+		es.WithAPIKey(env.ElasticAPIKey),
+		es.WithServiceToken(env.ElasticServiceToken),
 		es.WithMaxRetries(env.ElasticClientMaxRetries),
 		es.WithRetryStatuses(env.ElasticClientRetryStatuses...),
 		es.WithRetryOnTimeout(),
