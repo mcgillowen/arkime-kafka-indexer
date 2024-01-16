@@ -13,6 +13,8 @@ services:
       KAFKA_PRODUCER_BROKERS: kafka-1:9092
       KAFKA_PRODUCER_TOPIC: test-prod
       ELASTIC_SERVICE: elasticsearch
+      ELASTIC_USE_HTTPS: true
+      ELASTIC_CLIENT_MAX_RETRIES: 15
       ELASTIC_INDEXER_INSTANCES: "1"
       ELASTIC_CLIENT_RELOAD_INTERVAL: "5m"
       CONSUMER_CHANNEL_BUFFER_SIZE: "100"
@@ -23,13 +25,13 @@ services:
       KAFKA_SSL_CERT_LOCATION: /ssl/client_indexer_client.pem
       KAFKA_SSL_KEY_LOCATION: /ssl/client_indexer_client.key
       KAFKA_SSL_KEY_PASSWORD: abcdefgh
+      SSL_CERT_FILE: /es-certs/ca/ca.crt
     restart: unless-stopped
     volumes:
       - ./ssl:/ssl
+      - certs:/es-certs
     depends_on:
-      - kafka-1
-      - kafka-2
-      - elasticsearch
+      - es_setup
 
   kafka-1:
     image: confluentinc/cp-server:latest
@@ -127,13 +129,84 @@ services:
     depends_on:
       - kafka-1
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
-    container_name: elasticsearch
+  es_setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    volumes:
+      - certs:/usr/share/elasticsearch/config/certs
+    user: "0"
+    command: >
+      bash -c '
+        if [ x${ELASTIC_PASSWORD} == x ]; then
+          echo "Set the ELASTIC_PASSWORD environment variable in the .env file";
+          exit 1;
+        elif [ x${KIBANA_PASSWORD} == x ]; then
+          echo "Set the KIBANA_PASSWORD environment variable in the .env file";
+          exit 1;
+        fi;
+        if [ ! -f config/certs/ca.zip ]; then
+          echo "Creating CA";
+          bin/elasticsearch-certutil ca --silent --pem -out config/certs/ca.zip;
+          unzip config/certs/ca.zip -d config/certs;
+        fi;
+        if [ ! -f config/certs/certs.zip ]; then
+          echo "Creating certs";
+          echo -ne \
+          "instances:\n"\
+          "  - name: es01\n"\
+          "    dns:\n"\
+          "      - es01\n"\
+          "      - localhost\n"\
+          "    ip:\n"\
+          "      - 127.0.0.1\n"\
+          "  - name: kibana\n"\
+          "    dns:\n"\
+          "      - kibana\n"\
+          "      - localhost\n"\
+          "    ip:\n"\
+          "      - 127.0.0.1\n"\
+          > config/certs/instances.yml;
+          bin/elasticsearch-certutil cert --silent --pem -out config/certs/certs.zip --in config/certs/instances.yml --ca-cert config/certs/ca/ca.crt --ca-key config/certs/ca/ca.key;
+          unzip config/certs/certs.zip -d config/certs;
+        fi;
+        echo "Setting file permissions"
+        chown -R root:root config/certs;
+        find . -type d -exec chmod 750 \{\} \;;
+        find . -type f -exec chmod 640 \{\} \;;
+        echo "Waiting for Elasticsearch availability";
+        until curl -s --cacert config/certs/ca/ca.crt https://es01:9200 | grep -q "missing authentication credentials"; do sleep 30; done;
+        echo "Setting kibana_system password";
+        until curl -s -X POST --cacert config/certs/ca/ca.crt -u "elastic:${ELASTIC_PASSWORD}" -H "Content-Type: application/json" https://es01:9200/_security/user/kibana_system/_password -d "{\"password\":\"${KIBANA_PASSWORD}\"}" | grep -q "^{}"; do sleep 10; done;
+        echo "All done!";
+      '
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f config/certs/es01/es01.crt ]"]
+      interval: 1s
+      timeout: 5s
+      retries: 120
+
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    container_name: es01
     environment:
-      - xpack.security.enabled=false
+      - node.name=es01
+      - cluster.name=${CLUSTER_NAME}
       - discovery.type=single-node
-      - cluster.routing.alFILENAME.disk.threshold_enabled=false
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - bootstrap.memory_lock=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=certs/es01/es01.key
+      - xpack.security.http.ssl.certificate=certs/es01/es01.crt
+      - xpack.security.http.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.key=certs/es01/es01.key
+      - xpack.security.transport.ssl.certificate=certs/es01/es01.crt
+      - xpack.security.transport.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.license.self_generated.type=${LICENSE}
+    volumes:
+      - certs:/usr/share/elasticsearch/config/certs
+    mem_limit: ${ES_MEM_LIMIT}
     ulimits:
       memlock:
         soft: -1
@@ -144,15 +217,51 @@ services:
     cap_add:
       - IPC_LOCK
     ports:
-      - 9200:9200
+      - ${ES_PORT}:9200
       - 9300:9300
+    depends_on:
+      es_setup:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s --cacert config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing authentication credentials'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
 
   kibana:
     container_name: kibana
-    image: docker.elastic.co/kibana/kibana:7.17.1
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
     environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVERNAME=kibana
+      - ELASTICSEARCH_HOSTS=https://es01:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
+      - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=config/certs/ca/ca.crt
+      - XPACK_SECURITY_ENCRYPTIONKEY=${ENCRYPTION_KEY}
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${ENCRYPTION_KEY}
+      - XPACK_REPORTING_ENCRYPTIONKEY=${ENCRYPTION_KEY}
+    mem_limit: ${KB_MEM_LIMIT}
     ports:
-      - 5601:5601
+      - ${KIBANA_PORT}:5601
     depends_on:
-      - elasticsearch
+      es01:
+        condition: service_healthy
+    volumes:
+      - certs:/usr/share/kibana/config/certs
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+
+volumes:
+  certs:
+    driver: local
