@@ -58,6 +58,22 @@ dockers:
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
+  - use: buildx
+    dockerfile: Dockerfile
+    goos: darwin
+    goarch: amd64
+    goamd64: v1
+    image_templates:
+      - "ghcr.io/mcgillowen/{{ .ProjectName }}:{{ .Tag }}"
+      - "ghcr.io/mcgillowen/{{ .ProjectName }}:v{{ .Major }}"
+      - "ghcr.io/mcgillowen/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}"
+      - "ghcr.io/mcgillowen/{{ .ProjectName }}:latest"
+    build_flag_templates:
+      - "--platform=darwin/amd64"
+      - "--label=org.opencontainers.image.created={{.CommitDate}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
 
 
 archives:
@@ -82,6 +98,7 @@ changelog:
       - '^test:'
 
 release:
+  prerelease: auto
   github:
     owner: mcgillowen
     name: arkime-kafka-indexer
