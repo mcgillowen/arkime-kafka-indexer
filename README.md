@@ -126,6 +126,11 @@ Configuration of the indexer is done using environment variables following the 1
 | BulkerMaxBytes                        | BULKER_MAX_BYTES                          | int           | 10_485_760                                                                  | Maximum number of bytes to buffer before sending them to ES                      |
 | ElasticService                        | ELASTIC_SERVICE                           | string        |                                                                             | The address of an Elasticsearch node, the client will discover the rest of nodes |
 | ElasticServicePort                    | ELASTIC_SERVICE_PORT                      | string        | 9200                                                                        | The ES HTTP port                                                                 |
+| ElasticUseHTTPS                       | ELASTIC_USE_HTTPS                         | bool          | false                                                                       | Should the ES client communicate using HTTPS                                     |
+| ElasticUsername                       | ELASTIC_USERNAME                          | string        |                                                                             | The username for ES basic authentication                                         |
+| ElasticPassword                       | ELASTIC_PASSWORD                          | string        |                                                                             | The password for ES basic authentication                                         |
+| ElasticAPIKey                         | ELASTIC_API_KEY                           | string        |                                                                             | The API key for ES authentication                                                |
+| ElasticServiceToken                   | ELASTIC_SERVICE_TOKEN                     | string        |                                                                             | The service token for ES authentication                                          |
 | ElasticIndexerInstances               | ELASTIC_INDEXER_INSTANCES                 | int           | 1                                                                           | The number of parallel indexers to use                                           |
 | ElasticClientMaxRetries               | ELASTIC_CLIENT_MAX_RETRIES                | int           | 10                                                                          | Number of retries when communicating with ES                                     |
 | ElasticClientRetryStatuses            | ELASTIC_CLIENT_RETRY_STATUSES             | []int         | 502,503,504,429                                                             | Which HTTP status codes to retry                                                 |
@@ -148,6 +153,7 @@ Configuration of the indexer is done using environment variables following the 1
 | MetricsPath                           | METRICS_PATH                              | string        | /metrics                                                                    |                                                                                  |
 | FlushedBytesBuckets                   | METRICS_FLUSHED_BYTES_BUCKETS             | []float64     | 50_000,100_000,500_000,1_000_000,5_000_000,25_000_000,50_000_000,75_000_000 |                                                                                  |
 | FlushedMsgsBuckets                    | METRICS_FLUSHED_MSGS_BUCKETS              | []float64     | 2,4,8,16,32,64,128,256                                                      |                                                                                  |
+
 
 
 
