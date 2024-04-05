@@ -23,10 +23,10 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"sync/atomic"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/elastic/go-elasticsearch/v7/estransport"
 	"github.com/elastic/go-elasticsearch/v7/esutil"
 	"github.com/goccy/go-json"
@@ -42,8 +42,6 @@ type Indexer struct {
 	metrics       indexerMetrics
 	logger        zerolog.Logger
 	client        *elasticsearch.Client
-	metricsColl   prometheus.Collector
-	instanceCount atomic.Uint32
 }
 
 var errPingingCluster = errors.New("error pinging cluster, got a non-200 status code back")
@@ -71,10 +69,8 @@ func testClientConnection(client *elasticsearch.Client) error {
 	return nil
 }
 
-func newElasticClient(cfg indexerConfig) (*elasticsearch.Client, error) {
-	cfg.esConfig.Addresses = []string{fmt.Sprintf("http://%s", net.JoinHostPort(cfg.endpoint, cfg.port))}
-
-	client, err := elasticsearch.NewClient(*cfg.esConfig)
+func newElasticClient(cfg *elasticsearch.Config) (*elasticsearch.Client, error) {
+	client, err := elasticsearch.NewClient(*cfg)
 	if err != nil {
 		return nil, fmt.Errorf("error creating elastic client: %w", err)
 	}
@@ -91,7 +87,6 @@ type indexerConfig struct {
 	esConfig          *elasticsearch.Config
 	collectorFunc     func(*elasticsearch.Client) prometheus.Collector
 	promRegistry      *prometheus.Registry
-	endpoint, port    string
 	bulkTimeout       time.Duration
 	flushInterval     time.Duration
 	maxBufferedMsgs   int
@@ -119,11 +114,10 @@ func NewIndexer(
 	opts ...IndexerOption,
 ) (*Indexer, error) {
 	indexerCfg := indexerConfig{
-		endpoint: endpoint,
-		port:     port,
 		esConfig: &elasticsearch.Config{
 			DiscoverNodesOnStart:  true,
 			DiscoverNodesInterval: defaultDiscoverInterval,
+			Addresses:             []string{fmt.Sprintf("http://%s", net.JoinHostPort(endpoint, port))},
 		},
 		bulkTimeout:       defaultBulkTimeout,
 		flushInterval:     defaultFlushTimeout,
@@ -136,7 +130,7 @@ func NewIndexer(
 		opt(&indexerCfg)
 	}
 
-	client, err := newElasticClient(indexerCfg)
+	client, err := newElasticClient(indexerCfg.esConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error creating new elastic client: %w", err)
 	}
@@ -157,8 +151,6 @@ func NewIndexer(
 		if err != nil {
 			return nil, fmt.Errorf("error registering Prometheus collector: %w", err)
 		}
-
-		indexer.metricsColl = esCollector
 	}
 
 	return indexer, nil
@@ -173,8 +165,9 @@ func NewIndexer(
 func (i *Indexer) Start(
 	consumerChan <-chan *bytebufferpool.ByteBuffer,
 	errorChan chan<- *bytebufferpool.ByteBuffer,
+	instanceIndex int,
 ) error {
-	logger := i.logger.With().Uint32("instance", i.instanceCount.Add(1)).Logger()
+	logger := i.logger.With().Int("instance", instanceIndex).Logger()
 
 	if errorChan != nil {
 		defer close(errorChan)
@@ -274,17 +267,7 @@ func (i *Indexer) sendToES(in *bytebufferpool.ByteBuffer, logger zerolog.Logger)
 	logger.Debug().Msg("sent bulk request")
 
 	if resp.IsError() {
-		i.metrics.BulkIndexErrorCountInc()
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			logger.Error().Err(err).Msgf("error reading response body")
-			return nil
-		}
-
-		logger.Error().Bytes("body", body).Msgf("request failed")
-
-		return nil
+		i.handleResponseError(resp, logger)
 	}
 
 	jsonBody := esutil.BulkIndexerResponse{}
@@ -302,9 +285,25 @@ func (i *Indexer) sendToES(in *bytebufferpool.ByteBuffer, logger zerolog.Logger)
 		return nil
 	}
 
+	return i.parseESErrors(in.B, jsonBody, logger)
+}
+
+func (i *Indexer) handleResponseError(resp *esapi.Response, logger zerolog.Logger) {
+	i.metrics.BulkIndexErrorCountInc()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error().Err(err).Msgf("error reading response body")
+		return
+	}
+
+	logger.Error().Bytes("body", body).Msgf("request failed")
+}
+
+func (i *Indexer) parseESErrors(bulkBytes []byte, jsonBody esutil.BulkIndexerResponse, logger zerolog.Logger) *bytebufferpool.ByteBuffer {
 	out := i.msgPool.Get()
 	failedItems := 0
-	bulkLines := bytes.SplitAfter(in.B, []byte{'\n'})
+	bulkLines := bytes.SplitAfter(bulkBytes, []byte{'\n'})
 
 	for index, item := range jsonBody.Items {
 		for action, actionItem := range item {
@@ -312,7 +311,7 @@ func (i *Indexer) sendToES(in *bytebufferpool.ByteBuffer, logger zerolog.Logger)
 				continue
 			}
 
-			_, err = out.Write(bulkLines[index*2])
+			_, err := out.Write(bulkLines[index*2])
 			if err != nil {
 				logger.Error().Err(err).Msg("failed to write ES action line from error to buffer")
 			}
@@ -336,7 +335,7 @@ func (i *Indexer) sendToES(in *bytebufferpool.ByteBuffer, logger zerolog.Logger)
 	}
 
 	i.metrics.IndexedDocumentsCountAdd(float64(len(jsonBody.Items) - failedItems))
-	i.metrics.IndexedDocumentsBytesAdd(float64(indexedDocsBytes - out.Len()))
+	i.metrics.IndexedDocumentsBytesAdd(float64(len(bulkBytes) - out.Len()))
 
 	return out
 }
