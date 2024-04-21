@@ -150,7 +150,7 @@ func main() {
 			}
 		}
 	})
-	ctxPool.Go(func(ctx context.Context) error {
+	ctxPool.Go(func(_ context.Context) error {
 		err := server.ListenAndServe() // Blocks!
 		if !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("http server stopped unexpectedly: %w", err)
@@ -176,16 +176,14 @@ func main() {
 
 	errorChans := make([]<-chan *bytebufferpool.ByteBuffer, env.ElasticIndexerInstances)
 
-	for i := 0; i < env.ElasticIndexerInstances; i++ {
-		indexerNum := i
-
+	for indexerNum := range env.ElasticIndexerInstances {
 		var errorChan chan *bytebufferpool.ByteBuffer
 		if producer != nil {
 			errorChan = make(chan *bytebufferpool.ByteBuffer, env.ErrorChannelBufferSize)
 			errorChans[indexerNum] = errorChan
 		}
 
-		ctxPool.Go(func(ctx context.Context) error {
+		ctxPool.Go(func(_ context.Context) error {
 			err := indexer.Start(
 				consumerChan,
 				errorChan,
@@ -240,8 +238,6 @@ func merge(ctxPool *pool.ContextPool, size int, incomingChans ...<-chan *bytebuf
 	}
 
 	for _, c := range incomingChans {
-		c := c
-
 		wg.Go(func() {
 			output(c)
 		})
@@ -325,7 +321,7 @@ func setupMetricsAndServer(env envConfig, logger zerolog.Logger) (*metrics.Metri
 	mux.Handle(env.MetricsPath, promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
 
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%s", env.Port),
+		Addr:         ":" + env.Port,
 		Handler:      mux,
 		ReadTimeout:  defaultHTTPServerReadTimeout,
 		WriteTimeout: defaultHTTPServerWriteTimeout,

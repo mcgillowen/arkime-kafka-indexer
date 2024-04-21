@@ -72,7 +72,7 @@ func testClientConnection(client *elasticsearch.Client) error {
 }
 
 func newElasticClient(cfg indexerConfig) (*elasticsearch.Client, error) {
-	cfg.esConfig.Addresses = []string{fmt.Sprintf("http://%s", net.JoinHostPort(cfg.endpoint, cfg.port))}
+	cfg.esConfig.Addresses = []string{"http://" + net.JoinHostPort(cfg.endpoint, cfg.port)}
 
 	client, err := elasticsearch.NewClient(*cfg.esConfig)
 	if err != nil {
