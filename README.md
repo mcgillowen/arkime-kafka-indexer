@@ -165,7 +165,7 @@ Installs the dependencies for building, formatting, linting, etc.
 # Installs gofumpt for formatting the source code with extra rules
 go install mvdan.cc/gofumpt@latest
 # Installs golangci-lint for linting, uses the .golangci.yaml
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.57.1
 # Installs the Go vulnerability checking tool
 go install golang.org/x/vuln/cmd/govulncheck@latest
 ```
@@ -217,7 +217,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.21.6 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.22.2 \
   --clean --skip=publish --snapshot
 ```
 
@@ -233,7 +233,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.21.6 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.22.2 \
   --clean --snapshot
 ```
 
@@ -248,7 +248,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.21.6 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.22.2 \
   --clean --skip=publish
 ```
 
@@ -266,6 +266,6 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.21.6 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.22.2 \
   release --clean
 ```

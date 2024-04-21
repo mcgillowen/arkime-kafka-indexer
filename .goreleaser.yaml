@@ -15,6 +15,7 @@ builds:
       - darwin
     goarch:
       - amd64
+      - arm64
     ldflags:
       - "-s -w"
       - "-X main.version={{.Version}}"
@@ -33,12 +34,22 @@ builds:
         env:
           - CC=x86_64-linux-gnu-gcc
           - CXX=x86_64-linux-gnu-g++
+      - goos: linux
+        goarch: arm64
+        env:
+          - CC=aarch64-linux-gnu-gcc
+          - CXX=aarch64-linux-gnu-g++
       - goos: darwin
         goarch: amd64
         goamd64: v1
         env:
           - CC=o64-clang
           - CXX=o64-clang++
+      - goos: darwin
+        goarch: arm64
+        env:
+          - CC=oa64-clang
+          - CXX=oa64-clang++
 
 dockers:
   # https://goreleaser.com/customization/docker/
@@ -60,16 +71,15 @@ dockers:
       - "--label=org.opencontainers.image.version={{.Version}}"
   - use: buildx
     dockerfile: Dockerfile
-    goos: darwin
-    goarch: amd64
-    goamd64: v1
+    goos: linux
+    goarch: arm64
     image_templates:
       - "ghcr.io/mcgillowen/{{ .ProjectName }}:{{ .Tag }}"
       - "ghcr.io/mcgillowen/{{ .ProjectName }}:v{{ .Major }}"
       - "ghcr.io/mcgillowen/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}"
       - "ghcr.io/mcgillowen/{{ .ProjectName }}:latest"
     build_flag_templates:
-      - "--platform=darwin/amd64"
+      - "--platform=linux/arm64"
       - "--label=org.opencontainers.image.created={{.CommitDate}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
