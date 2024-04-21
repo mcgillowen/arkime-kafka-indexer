@@ -101,7 +101,6 @@ func Test_bulker_flush(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			tst := zltest.New(t)
@@ -218,7 +217,6 @@ func Test_bulker_bulk(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			tst := zltest.New(t)

@@ -95,7 +95,7 @@ func TestIndexer_sendToES(t *testing.T) {
 		{
 			name:         "no error response",
 			responseBody: io.NopCloser(strings.NewReader(`{"took":0,"errors":false}`)),
-			roundtripFn:  func(req *http.Request) (*http.Response, error) { return mocktrans.Response, nil },
+			roundtripFn:  func(_ *http.Request) (*http.Response, error) { return mocktrans.Response, nil },
 			mockCalls:    map[string][]interface{}{},
 			buffers: buffers{
 				in: &bytebufferpool.ByteBuffer{},
@@ -188,8 +188,7 @@ func TestIndexer_sendToES(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
-		testCase := tc
+	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			tst := zltest.New(t)
 
