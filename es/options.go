@@ -149,3 +149,32 @@ func WithDiscoverNodesInterval(discoverInterval time.Duration) IndexerOption {
 		ic.esConfig.DiscoverNodesInterval = discoverInterval
 	}
 }
+
+// WithBasicAuth sets the username and password for using basic authentication
+// to connect to ES.
+func WithBasicAuth(username, password string) IndexerOption {
+	return func(ic *indexerConfig) {
+		if username != "" && password != "" {
+			ic.esConfig.Username = username
+			ic.esConfig.Password = password
+		}
+	}
+}
+
+// WithAPIKey sets the API key for ES authentication.
+func WithAPIKey(apiKey string) IndexerOption {
+	return func(ic *indexerConfig) {
+		if apiKey != "" {
+			ic.esConfig.APIKey = apiKey
+		}
+	}
+}
+
+// WithServiceToken sets the service token for ES authentication.
+func WithServiceToken(serviceToken string) IndexerOption {
+	return func(ic *indexerConfig) {
+		if serviceToken != "" {
+			ic.esConfig.ServiceToken = serviceToken
+		}
+	}
+}
