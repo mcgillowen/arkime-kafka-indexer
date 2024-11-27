@@ -369,7 +369,7 @@ func (i *Indexer) CheckESStatus() error {
 		}
 	}
 
-	deadPercentage := int(float32(deadConnections) / float32(totalConnections) * 100) //nolint:mnd,gomnd // standard multiplier for percentage
+	deadPercentage := int(float32(deadConnections) / float32(totalConnections) * 100) //nolint:mnd // standard multiplier for percentage
 
 	i.logger.Debug().
 		Int("total_connections", totalConnections).

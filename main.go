@@ -142,7 +142,7 @@ func main() {
 			case <-ctx.Done():
 				logger.Debug().Msg("context is finished")
 
-				ctx, cancel = context.WithTimeout(context.Background(), defaultHTTPServerShutdownTimeout)
+				ctx, cancel := context.WithTimeout(context.Background(), defaultHTTPServerShutdownTimeout)
 				defer cancel()
 
 				if err := server.Shutdown(ctx); err != nil { //nolint:contextcheck,lll // this is a bug https://github.com/kkHAIKE/contextcheck/issues/2

@@ -124,8 +124,8 @@ func TestIndexer_sendToES(t *testing.T) {
 				require.NotNil(t, req.Body, "body cannot be nil")
 				reqBody, err := io.ReadAll(req.Body)
 				require.NoError(t, err, "error reading body")
-				require.Equal(t, []byte(`{"index": {"_index": "test", "_id": "test"}}
-{"test":"spi"}`), reqBody, "request body should match sent in buffer")
+				require.JSONEq(t, `{"index": {"_index": "test", "_id": "test"}}
+{"test":"spi"}`, string(reqBody), "request body should match sent in buffer")
 
 				return mocktrans.Response, nil
 			},
@@ -166,8 +166,8 @@ func TestIndexer_sendToES(t *testing.T) {
 				require.NotNil(t, req.Body, "body cannot be nil")
 				reqBody, err := io.ReadAll(req.Body)
 				require.NoError(t, err, "error reading body")
-				require.Equal(t, []byte(`{"create": {"_index": "test", "_id": "test"}}
-{"test":"spi"}`), reqBody, "request body should match sent in buffer")
+				require.JSONEq(t, `{"create": {"_index": "test", "_id": "test"}}
+{"test":"spi"}`, string(reqBody), "request body should match sent in buffer")
 
 				return mocktrans.Response, nil
 			},
