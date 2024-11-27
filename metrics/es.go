@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/elastic/go-elasticsearch/v7/estransport"
+	"github.com/elastic/elastic-transport-go/v8/elastictransport"
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -111,7 +111,7 @@ func (ec *ESCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- ec.clientResponsesMetric
 
 	for _, connectionStringer := range metrics.Connections {
-		_, ok := connectionStringer.(estransport.ConnectionMetric)
+		_, ok := connectionStringer.(elastictransport.ConnectionMetric)
 		if !ok {
 			ch <- ec.invalidConnectionMetric
 		}
@@ -147,7 +147,7 @@ func (ec *ESCollector) Collect(ch chan<- prometheus.Metric) {
 	deadConnections := 0
 
 	for _, connectionStringer := range metrics.Connections {
-		connection, ok := connectionStringer.(estransport.ConnectionMetric)
+		connection, ok := connectionStringer.(elastictransport.ConnectionMetric)
 		if !ok {
 			ch <- prometheus.NewInvalidMetric(ec.invalidConnectionMetric, errInvalidConnection)
 

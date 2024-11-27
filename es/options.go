@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 
@@ -39,13 +39,6 @@ func WithTransport(transport http.RoundTripper) IndexerOption {
 func WithRetryStatuses(statuses ...int) IndexerOption {
 	return func(ic *indexerConfig) {
 		ic.esConfig.RetryOnStatus = statuses
-	}
-}
-
-// WithRetryOnTimeout enables retries on connection timeouts.
-func WithRetryOnTimeout() IndexerOption {
-	return func(ic *indexerConfig) {
-		ic.esConfig.EnableRetryOnTimeout = true
 	}
 }
 

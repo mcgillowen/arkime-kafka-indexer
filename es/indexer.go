@@ -25,10 +25,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/elastic/go-elasticsearch/v7/esapi"
-	"github.com/elastic/go-elasticsearch/v7/estransport"
-	"github.com/elastic/go-elasticsearch/v7/esutil"
+	"github.com/elastic/elastic-transport-go/v8/elastictransport"
+	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/elastic/go-elasticsearch/v8/esapi"
+	"github.com/elastic/go-elasticsearch/v8/esutil"
 	"github.com/goccy/go-json"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
@@ -359,7 +359,7 @@ func (i *Indexer) CheckESStatus() error {
 	deadConnections := 0
 
 	for _, connectionStringer := range m.Connections {
-		cm, ok := connectionStringer.(estransport.ConnectionMetric)
+		cm, ok := connectionStringer.(elastictransport.ConnectionMetric)
 		if !ok {
 			deadConnections++
 		}
@@ -369,7 +369,7 @@ func (i *Indexer) CheckESStatus() error {
 		}
 	}
 
-	deadPercentage := int(float32(deadConnections) / float32(totalConnections) * 100) //nolint:gomnd // standard multiplier for percentage
+	deadPercentage := int(float32(deadConnections) / float32(totalConnections) * 100) //nolint:mnd,gomnd // standard multiplier for percentage
 
 	i.logger.Debug().
 		Int("total_connections", totalConnections).

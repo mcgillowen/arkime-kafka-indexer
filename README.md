@@ -54,13 +54,6 @@ The Docker compose stack is set up for using SSL/TLS, but the required certifica
 
 More information about using SSL with librdkafka (underlying Kafka library used) check out https://github.com/confluentinc/librdkafka/wiki/Using-SSL-with-librdkafka
 
-### Limitations
-
-Currently there are a few limitations with the current implementation of the indexer, these are:
-
-* Only HTTP support for communicating with ES, as well as unauthenticated only.
-
-We are working to fix these limitations, but any help is welcome.
 
 ## Architecture
 
@@ -153,8 +146,6 @@ Configuration of the indexer is done using environment variables following the 1
 | MetricsPath                           | METRICS_PATH                              | string        | /metrics                                                                    |                                                                                  |
 | FlushedBytesBuckets                   | METRICS_FLUSHED_BYTES_BUCKETS             | []float64     | 50_000,100_000,500_000,1_000_000,5_000_000,25_000_000,50_000_000,75_000_000 |                                                                                  |
 | FlushedMsgsBuckets                    | METRICS_FLUSHED_MSGS_BUCKETS              | []float64     | 2,4,8,16,32,64,128,256                                                      |                                                                                  |
-
-
 
 
 ## Tasks

@@ -23,7 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/rs/zerolog"
 	"github.com/rzajac/zltest"
 	"github.com/stretchr/testify/mock"
@@ -67,8 +67,7 @@ func TestIndexer_sendToES(t *testing.T) {
 	}
 
 	esClient, err := elasticsearch.NewClient(elasticsearch.Config{
-		Transport:            &mocktrans,
-		UseResponseCheckOnly: true,
+		Transport: &mocktrans,
 	})
 	require.NoError(t, err, "there should be no error creating the ES client")
 

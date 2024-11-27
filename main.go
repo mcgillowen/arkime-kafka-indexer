@@ -366,7 +366,6 @@ func setupIndexer(
 		es.WithServiceToken(env.ElasticServiceToken),
 		es.WithMaxRetries(env.ElasticClientMaxRetries),
 		es.WithRetryStatuses(env.ElasticClientRetryStatuses...),
-		es.WithRetryOnTimeout(),
 		es.WithRetryBackoffFunc(
 			es.RetryBackoffFunc(
 				defaultMinimumRetryBackoff,
