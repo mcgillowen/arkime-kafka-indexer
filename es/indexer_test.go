@@ -23,7 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/rs/zerolog"
 	"github.com/rzajac/zltest"
 	"github.com/stretchr/testify/mock"
@@ -67,8 +67,7 @@ func TestIndexer_sendToES(t *testing.T) {
 	}
 
 	esClient, err := elasticsearch.NewClient(elasticsearch.Config{
-		Transport:            &mocktrans,
-		UseResponseCheckOnly: true,
+		Transport: &mocktrans,
 	})
 	require.NoError(t, err, "there should be no error creating the ES client")
 
@@ -125,6 +124,7 @@ func TestIndexer_sendToES(t *testing.T) {
 				require.NotNil(t, req.Body, "body cannot be nil")
 				reqBody, err := io.ReadAll(req.Body)
 				require.NoError(t, err, "error reading body")
+				//nolint:testifylint // we are checking for NDJSON
 				require.Equal(t, []byte(`{"index": {"_index": "test", "_id": "test"}}
 {"test":"spi"}`), reqBody, "request body should match sent in buffer")
 
@@ -167,6 +167,7 @@ func TestIndexer_sendToES(t *testing.T) {
 				require.NotNil(t, req.Body, "body cannot be nil")
 				reqBody, err := io.ReadAll(req.Body)
 				require.NoError(t, err, "error reading body")
+				//nolint:testifylint // we are checking for NDJSON
 				require.Equal(t, []byte(`{"create": {"_index": "test", "_id": "test"}}
 {"test":"spi"}`), reqBody, "request body should match sent in buffer")
 

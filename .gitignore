@@ -23,3 +23,4 @@ ssl/
 !ssl/gen-ssl-certs.sh
 !ssl/gen-aki-compose-certs.sh
 !ssl/creds
+!ssl/es_setup.sh

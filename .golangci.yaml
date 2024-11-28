@@ -50,13 +50,4 @@ linters:
     - gocognit
     - lll
     - depguard
-    - nosnakecase # Deprecated
-    - maligned # Deprecated
-    - interfacer # Deprecated
-    - ifshort # Deprecated
-    - scopelint # Deprecated
-    - structcheck # Deprecated
-    - varcheck # Deprecated
-    - deadcode # Deprecated
-    - golint # Deprecated
-    - exhaustivestruct # Deprecated
+    - exportloopref # Deprecated

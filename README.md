@@ -54,13 +54,6 @@ The Docker compose stack is set up for using SSL/TLS, but the required certifica
 
 More information about using SSL with librdkafka (underlying Kafka library used) check out https://github.com/confluentinc/librdkafka/wiki/Using-SSL-with-librdkafka
 
-### Limitations
-
-Currently there are a few limitations with the current implementation of the indexer, these are:
-
-* Only HTTP support for communicating with ES, as well as unauthenticated only.
-
-We are working to fix these limitations, but any help is welcome.
 
 ## Architecture
 
@@ -126,6 +119,11 @@ Configuration of the indexer is done using environment variables following the 1
 | BulkerMaxBytes                        | BULKER_MAX_BYTES                          | int           | 10_485_760                                                                  | Maximum number of bytes to buffer before sending them to ES                      |
 | ElasticService                        | ELASTIC_SERVICE                           | string        |                                                                             | The address of an Elasticsearch node, the client will discover the rest of nodes |
 | ElasticServicePort                    | ELASTIC_SERVICE_PORT                      | string        | 9200                                                                        | The ES HTTP port                                                                 |
+| ElasticUseHTTPS                       | ELASTIC_USE_HTTPS                         | bool          | false                                                                       | Should the ES client communicate using HTTPS                                     |
+| ElasticUsername                       | ELASTIC_USERNAME                          | string        |                                                                             | The username for ES basic authentication                                         |
+| ElasticPassword                       | ELASTIC_PASSWORD                          | string        |                                                                             | The password for ES basic authentication                                         |
+| ElasticAPIKey                         | ELASTIC_API_KEY                           | string        |                                                                             | The API key for ES authentication                                                |
+| ElasticServiceToken                   | ELASTIC_SERVICE_TOKEN                     | string        |                                                                             | The service token for ES authentication                                          |
 | ElasticIndexerInstances               | ELASTIC_INDEXER_INSTANCES                 | int           | 1                                                                           | The number of parallel indexers to use                                           |
 | ElasticClientMaxRetries               | ELASTIC_CLIENT_MAX_RETRIES                | int           | 10                                                                          | Number of retries when communicating with ES                                     |
 | ElasticClientRetryStatuses            | ELASTIC_CLIENT_RETRY_STATUSES             | []int         | 502,503,504,429                                                             | Which HTTP status codes to retry                                                 |
@@ -150,7 +148,6 @@ Configuration of the indexer is done using environment variables following the 1
 | FlushedMsgsBuckets                    | METRICS_FLUSHED_MSGS_BUCKETS              | []float64     | 2,4,8,16,32,64,128,256                                                      |                                                                                  |
 
 
-
 ## Tasks
 
 The following subsections define tasks that can be run using the [xc tool](https://xcfile.dev/), this tool executes the commands within the code block of each subsection, with
@@ -165,7 +162,7 @@ Installs the dependencies for building, formatting, linting, etc.
 # Installs gofumpt for formatting the source code with extra rules
 go install mvdan.cc/gofumpt@latest
 # Installs golangci-lint for linting, uses the .golangci.yaml
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.57.1
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.62.2
 # Installs the Go vulnerability checking tool
 go install golang.org/x/vuln/cmd/govulncheck@latest
 ```

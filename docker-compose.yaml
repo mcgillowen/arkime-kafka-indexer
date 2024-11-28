@@ -1,7 +1,6 @@
-version: "3"
-
 services:
   indexer:
+    container_name: indexer
     image: ghcr.io/mcgillowen/arkime-kafka-indexer:latest
     #entrypoint: "sleep 3000"
     ports:
@@ -12,26 +11,30 @@ services:
       KAFKA_CONSUMER_BROKERS: kafka-1:9092
       KAFKA_PRODUCER_BROKERS: kafka-1:9092
       KAFKA_PRODUCER_TOPIC: test-prod
-      ELASTIC_SERVICE: elasticsearch
+      ELASTIC_SERVICE: es01
+      ELASTIC_USE_HTTPS: true
+      ELASTIC_CLIENT_MAX_RETRIES: 5
       ELASTIC_INDEXER_INSTANCES: "1"
       ELASTIC_CLIENT_RELOAD_INTERVAL: "5m"
+      ELASTIC_USERNAME: elastic
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
       CONSUMER_CHANNEL_BUFFER_SIZE: "100"
       LOG_LEVEL: debug
       KAFKA_CONSUMER_INCREMENTAL_REBALANCE: "true"
-      KAFKA_CONSUMER_OFFSET_COMMIT_INTERVAL: 5
       KAFKA_SSL_CA_LOCATION: /ssl/ca-cert
       KAFKA_SSL_CERT_LOCATION: /ssl/client_indexer_client.pem
       KAFKA_SSL_KEY_LOCATION: /ssl/client_indexer_client.key
       KAFKA_SSL_KEY_PASSWORD: abcdefgh
+      SSL_CERT_FILE: /es-certs/ca/ca.crt
     restart: unless-stopped
     volumes:
       - ./ssl:/ssl
+      - certs:/es-certs
     depends_on:
-      - kafka-1
-      - kafka-2
-      - elasticsearch
+      - es_setup
 
   kafka-1:
+    container_name: kafka-1
     image: confluentinc/cp-server:latest
     ports:
     - 9012:9012
@@ -58,6 +61,7 @@ services:
       - ./ssl:/etc/kafka/secrets
 
   kafka-2:
+    container_name: kafka-2
     image: confluentinc/cp-server:latest
     ports:
       - 9013:9013
@@ -66,7 +70,7 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       KAFKA_NODE_ID: 2
       KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:9093,2@kafka-2:9093'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093'
       KAFKA_LISTENERS: 'SSL_HOST://localhost:29092,SSL://kafka-2:9092,CONTROLLER://kafka-2:9093'
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_ADVERTISED_LISTENERS: SSL_HOST://localhost:29092,SSL://kafka-2:9092
@@ -84,6 +88,7 @@ services:
       - ./ssl:/etc/kafka/secrets
 
   kafka-3:
+    container_name: kafka-3
     image: confluentinc/cp-server:latest
     ports:
       - 9014:9014
@@ -110,6 +115,7 @@ services:
       - ./ssl:/etc/kafka/secrets
 
   kafka-ui:
+    container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
     ports:
       - 8081:8080
@@ -127,32 +133,105 @@ services:
     depends_on:
       - kafka-1
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
-    container_name: elasticsearch
+  es_setup:
+    container_name: es_setup
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
     environment:
-      - xpack.security.enabled=false
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      KIBANA_PASSWORD: ${KIBANA_PASSWORD}
+    volumes:
+      - certs:/usr/share/elasticsearch/config/certs
+      - ./ssl/es_setup.sh:/es_setup.sh
+    user: "0"
+    command: >
+      bash /es_setup.sh
+    depends_on:
+      - kibana
+      - es01
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f config/certs/es01/es01.crt ]"]
+      interval: 1s
+      timeout: 5s
+      retries: 120
+
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    container_name: es01
+    environment:
+      - node.name=es01
+      - cluster.name=${CLUSTER_NAME}
       - discovery.type=single-node
-      - cluster.routing.alFILENAME.disk.threshold_enabled=false
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - bootstrap.memory_lock=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=certs/es01/es01.key
+      - xpack.security.http.ssl.certificate=certs/es01/es01.crt
+      - xpack.security.http.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.key=certs/es01/es01.key
+      - xpack.security.transport.ssl.certificate=certs/es01/es01.crt
+      - xpack.security.transport.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.license.self_generated.type=${LICENSE}
+    volumes:
+      - certs:/usr/share/elasticsearch/config/certs
+    mem_limit: ${ES_MEM_LIMIT}
+    #ulimits:
+    #  memlock:
+    #    soft: -1
+    #    hard: -1
+    #  nofile:
+    #    soft: 65536
+    #    hard: 65536
     cap_add:
       - IPC_LOCK
     ports:
-      - 9200:9200
+      - ${ES_PORT}:9200
       - 9300:9300
+    #depends_on:
+    #  es_setup:
+    #    condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s --cacert config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing authentication credentials'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
 
   kibana:
     container_name: kibana
-    image: docker.elastic.co/kibana/kibana:7.17.1
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
     environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVERNAME=kibana
+      - ELASTICSEARCH_HOSTS=https://es01:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
+      - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=config/certs/ca/ca.crt
+      - XPACK_SECURITY_ENCRYPTIONKEY=${ENCRYPTION_KEY}
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${ENCRYPTION_KEY}
+      - XPACK_REPORTING_ENCRYPTIONKEY=${ENCRYPTION_KEY}
+    mem_limit: ${KB_MEM_LIMIT}
     ports:
-      - 5601:5601
-    depends_on:
-      - elasticsearch
+      - ${KIBANA_PORT}:5601
+    #depends_on:
+    #  es01:
+    #    condition: service_healthy
+    volumes:
+      - certs:/usr/share/kibana/config/certs
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+
+volumes:
+  certs:
+    driver: local

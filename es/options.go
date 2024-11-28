@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 
@@ -39,13 +39,6 @@ func WithTransport(transport http.RoundTripper) IndexerOption {
 func WithRetryStatuses(statuses ...int) IndexerOption {
 	return func(ic *indexerConfig) {
 		ic.esConfig.RetryOnStatus = statuses
-	}
-}
-
-// WithRetryOnTimeout enables retries on connection timeouts.
-func WithRetryOnTimeout() IndexerOption {
-	return func(ic *indexerConfig) {
-		ic.esConfig.EnableRetryOnTimeout = true
 	}
 }
 
@@ -147,5 +140,34 @@ func WithDiscoverNodesOnStart(enabled bool) IndexerOption {
 func WithDiscoverNodesInterval(discoverInterval time.Duration) IndexerOption {
 	return func(ic *indexerConfig) {
 		ic.esConfig.DiscoverNodesInterval = discoverInterval
+	}
+}
+
+// WithBasicAuth sets the username and password for using basic authentication
+// to connect to ES.
+func WithBasicAuth(username, password string) IndexerOption {
+	return func(ic *indexerConfig) {
+		if username != "" && password != "" {
+			ic.esConfig.Username = username
+			ic.esConfig.Password = password
+		}
+	}
+}
+
+// WithAPIKey sets the API key for ES authentication.
+func WithAPIKey(apiKey string) IndexerOption {
+	return func(ic *indexerConfig) {
+		if apiKey != "" {
+			ic.esConfig.APIKey = apiKey
+		}
+	}
+}
+
+// WithServiceToken sets the service token for ES authentication.
+func WithServiceToken(serviceToken string) IndexerOption {
+	return func(ic *indexerConfig) {
+		if serviceToken != "" {
+			ic.esConfig.ServiceToken = serviceToken
+		}
 	}
 }
