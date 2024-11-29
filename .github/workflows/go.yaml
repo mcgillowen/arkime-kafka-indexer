@@ -19,7 +19,7 @@ jobs:
           check-latest: true
 
       - name: Check dependencies are tidy
-        uses: katexochen/go-tidy-check@v1
+        uses: katexochen/go-tidy-check@v2
 
       - name: Install tools
         run: |
