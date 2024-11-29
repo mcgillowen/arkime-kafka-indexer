@@ -214,7 +214,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.22.2 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.23.3 \
   --clean --skip=publish --snapshot
 ```
 
@@ -230,7 +230,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.22.2 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.23.3 \
   --clean --snapshot
 ```
 
@@ -245,7 +245,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.22.2 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.23.3 \
   --clean --skip=publish
 ```
 
@@ -263,6 +263,6 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.22.2 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.23.3 \
   release --clean
 ```

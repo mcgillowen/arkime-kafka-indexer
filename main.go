@@ -31,6 +31,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/common/version"
 	"github.com/rs/zerolog"
 	"github.com/sourcegraph/conc"
 	"github.com/sourcegraph/conc/pool"
@@ -269,25 +270,14 @@ func printBuildInfo(logger zerolog.Logger) {
 		logger.Fatal().Msg("unable to read build info from binary")
 	}
 
-	var arch, operatingSystem string
-
-	for _, buildSetting := range buildInfo.Settings {
-		switch buildSetting.Key {
-		case "GOARCH":
-			arch = buildSetting.Value
-		case "GOOS":
-			operatingSystem = buildSetting.Value
-		}
-	}
-
 	logger.Info().
-		Str("go_version", buildInfo.GoVersion).
-		Str("GOOS", operatingSystem).
-		Str("GOARCH", arch).
-		Str("version", version).
-		Str("build_time", date).
-		Str("commit", commit).
-		Str("built_by", builtBy).
+		Str("go_version", version.GoVersion).
+		Str("GOOS", version.GoOS).
+		Str("GOARCH", version.GoArch).
+		Str("version", version.Version).
+		Str("build_time", version.BuildDate).
+		Str("revision", version.Revision).
+		Str("built_by", version.BuildUser).
 		Msgf("Starting %s", buildInfo.Path)
 }
 
