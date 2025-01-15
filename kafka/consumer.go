@@ -39,9 +39,10 @@ type Consumer struct {
 }
 
 type consumerMetrics interface {
-	MsgConsumedSizeObserve(num float64)
-	LostPartitionAssignmentInc()
-	RebalanceInc(reason string)
+	MsgConsumed(size int)
+	MsgConsumedError()
+	LostPartitionAssignment()
+	Rebalanced(reason string)
 }
 
 // NewConsumer creates an instance of a kafka.Consumer configured with the provided values.
@@ -158,7 +159,7 @@ func (c *Consumer) Start(
 					log.Trace().Msg(event.String())
 				}
 
-				c.metrics.MsgConsumedSizeObserve(float64(len(event.Value)))
+				c.metrics.MsgConsumed(len(event.Value))
 				msgBuf := c.msgPool.Get()
 
 				writeLen, _ := msgBuf.Write(event.Value)
@@ -176,6 +177,8 @@ func (c *Consumer) Start(
 					c.logger.Trace().Msg(msgBuf.String())
 				}
 			case kafka.Error:
+				c.metrics.MsgConsumedError()
+
 				return fmt.Errorf("kafka consumer error: %w", event)
 			}
 		}
@@ -190,18 +193,18 @@ func (c *Consumer) rebalanceCb(kafkaCons *kafka.Consumer, event kafka.Event) err
 			Int("new_partitions", len(kafkaEvent.Partitions)).
 			Any("partitions", kafkaEvent.Partitions).
 			Msg("assigning new partitions")
-		c.metrics.RebalanceInc("assignment")
+		c.metrics.Rebalanced("assignment")
 	case kafka.RevokedPartitions:
 		c.logger.Info().
 			Str("rebalance_protocol", kafkaCons.GetRebalanceProtocol()).
 			Int("revoked_partitions", len(kafkaEvent.Partitions)).
 			Any("partitions", kafkaEvent.Partitions).
 			Msg("revoking partitions")
-		c.metrics.RebalanceInc("revocation")
+		c.metrics.Rebalanced("revocation")
 
 		if kafkaCons.AssignmentLost() {
 			c.logger.Warn().Msg("assignmnent lost involuntarily")
-			c.metrics.LostPartitionAssignmentInc()
+			c.metrics.LostPartitionAssignment()
 		}
 	}
 

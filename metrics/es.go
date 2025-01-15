@@ -48,46 +48,51 @@ var (
 	errInvalidConnection = errors.New("error getting connection-specific metrics")
 )
 
+const (
+	namespace = "es"
+	subsys    = "client"
+)
+
 // NewESCollectorFunc creates a function that takes an *elasticsearch.Client and returns a prometheus.Collector,
 // the namespace and subsystem for the prometheus metrics must be provided at creation time.
-func NewESCollectorFunc(namespace, subsys string) func(*elasticsearch.Client) prometheus.Collector {
+func NewESCollectorFunc() func(*elasticsearch.Client) prometheus.Collector {
 	return func(client *elasticsearch.Client) prometheus.Collector {
 		return &ESCollector{
 			client:                  client,
 			invalidMetric:           prometheus.NewInvalidDesc(errInvalidMetrics),
 			invalidConnectionMetric: prometheus.NewInvalidDesc(errInvalidConnection),
 			clientRequestsMetric: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, subsys, "es_client_requests_total"),
+				prometheus.BuildFQName(namespace, subsys, "requests_total"),
 				"Number of requests performed by the ES client",
 				nil,
 				nil,
 			),
 			clientFailuresMetric: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, subsys, "es_client_failures_total"),
+				prometheus.BuildFQName(namespace, subsys, "failures_total"),
 				"Number of failed requests performed by the ES client",
 				nil,
 				nil,
 			),
 			clientResponsesMetric: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, subsys, "es_client_responses_total"),
+				prometheus.BuildFQName(namespace, subsys, "responses_total"),
 				"Number of responses received by the ES client, categorised by status code",
 				[]string{"status_code"},
 				nil,
 			),
 			connectionFailuresMetric: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, subsys, "es_client_connection_failures_total"),
+				prometheus.BuildFQName(namespace, subsys, "connection_failures_total"),
 				"Number of failed requests performed by the ES client, categorised by the URL",
 				[]string{"url"},
 				nil,
 			),
 			totalConnectionsMetric: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, subsys, "es_client_total_connections_total"),
+				prometheus.BuildFQName(namespace, subsys, "total_connections_total"),
 				"Number of total connections in connection pool",
 				nil,
 				nil,
 			),
 			deadConnectionsMetric: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, subsys, "es_client_dead_connections_total"),
+				prometheus.BuildFQName(namespace, subsys, "dead_connections_total"),
 				"Number of dead connections in connection pool",
 				nil,
 				nil,

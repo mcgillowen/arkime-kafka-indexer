@@ -24,222 +24,281 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 )
 
-// Metrics struct contains the various prometheus metrics collected by the indexer.
-// It implements various *Metrics interfaces defined by the various components of
+const (
+	nativeHistogramBucketFactor = 1.1
+	bytesBucketScalingFactor    = 1024
+	bytesBucketDensity          = 32
+	bytesBucketUpperLimit       = 1280
+)
+
+// Prometheus struct contains the various prometheus metrics collected by the indexer.
+// It implements various *Prometheus interfaces defined by the various components of
 // the indexer.
-type Metrics struct {
-	msgConsumedSize prometheus.Histogram
-	msgProducedSize prometheus.Histogram
+type Prometheus struct {
+	*kafkaPrometheus
 
-	partitionAssignmentLostCounter prometheus.Counter
-	rebalanceCounter               *prometheus.CounterVec
-	offsetCommitCounter            prometheus.Counter
+	*bulkerPrometheus
 
-	flushedMsgsHistogram  prometheus.Histogram
-	flushedBytesHistogram prometheus.Histogram
-	flushReason           prometheus.CounterVec
-
-	indexDocumentsCounter      prometheus.Counter
-	indexDocumentsBytesCounter prometheus.Counter
-
-	sessionIndexFailureCounter prometheus.Counter
-
-	esClientReloadCounter prometheus.Counter
-
-	bulkIndexCounter      prometheus.Counter
-	bulkIndexErrorCounter prometheus.Counter
-	bulkIndexRetryCounter prometheus.Counter
-
-	successfullyProducedMessageCounter   prometheus.Counter
-	unsuccessfullyProducedMessageCounter prometheus.Counter
+	*indexerPrometheus
 }
 
-// InitPrometheus initialises the Metrics struct with the various metrics and
+type kafkaPrometheus struct {
+	msgConsumedSize  prometheus.Histogram
+	msgConsumedError prometheus.Counter
+	msgProducedSize  prometheus.Histogram
+	msgProducedError prometheus.Counter
+
+	partitionAssignmentLost prometheus.Counter
+	rebalance               *prometheus.CounterVec
+
+	successfullyProducedMessage   prometheus.Counter
+	unsuccessfullyProducedMessage prometheus.Counter
+}
+
+type bulkerPrometheus struct {
+	flushedMsgs  prometheus.Histogram
+	flushedBytes prometheus.Histogram
+	flushReason  prometheus.CounterVec
+}
+
+type indexerPrometheus struct {
+	sessionIndexFailure prometheus.Histogram
+
+	esClientReload prometheus.Counter
+
+	bulkCall      prometheus.Counter
+	bulkCallError prometheus.Counter
+	bulkCallRetry prometheus.Counter
+}
+
+// NewPrometheus initialises the Metrics struct with the various metrics and
 // registers the metrics with a *prometheus.Registry.
 // Returns the initialised Metrics struct and the new Prometheus registry which needs
 // to be exposed over HTTP to be collected.
-//
-//nolint:funlen // This function can't really be shorter
-func InitPrometheus(
-	namespace, subsys string,
-	flushedBytesBuckets, flushedMsgsBuckets []float64,
-) (*Metrics, *prometheus.Registry, error) {
-	metrics := &Metrics{}
+func NewPrometheus(
+	maxBulkerBytes, maxBulkerMsgs, bulkerBucketsDensity int,
+) (*Prometheus, *prometheus.Registry, error) {
+	metrics := &Prometheus{}
 	reg := prometheus.NewPedanticRegistry()
-	errs := make([]error, 0)
 
-	metrics.msgConsumedSize = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name:      "msgs_consumed_bytes",
-		Help:      "The size in bytes of the payload consumed",
-		Namespace: namespace,
-		Subsystem: subsys,
-		Buckets:   []float64{256, 384, 512, 768, 1024, 1280, 1536, 1792, 2048, 2560, 3072, 4096},
-	})
-	metrics.msgProducedSize = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name:      "msgs_produced_bytes",
-		Help:      "The size in bytes of the payload produced",
-		Namespace: namespace,
-		Subsystem: subsys,
-		Buckets:   []float64{256, 384, 512, 768, 1024, 1280, 1536, 1792, 2048, 2560, 3072, 4096},
-	})
+	kafkaProm, err := setupKafkaPrometheus(reg)
+	if err != nil {
+		return nil, nil, fmt.Errorf("setting up kafka prometheus metrics: %w", err)
+	}
 
-	metrics.partitionAssignmentLostCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name:      "partition_assignment_lost_total",
-		Help:      "Total number of lost partition assignments",
-		Namespace: namespace,
-		Subsystem: subsys,
-	})
+	metrics.kafkaPrometheus = kafkaProm
 
-	metrics.rebalanceCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name:      "rebalance_total",
-		Help:      "Total number of rebalances",
-		Namespace: namespace,
-		Subsystem: subsys,
-	}, []string{"reason"})
+	bulkerProm, err := setupBulkerPrometheus(reg, maxBulkerBytes, maxBulkerMsgs, bulkerBucketsDensity)
+	if err != nil {
+		return nil, nil, fmt.Errorf("setting up bulker prometheus metrics: %w", err)
+	}
 
-	metrics.offsetCommitCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name:      "offset_commit_total",
-		Help:      "Total number of offset commits",
-		Namespace: namespace,
-		Subsystem: subsys,
-	})
+	metrics.bulkerPrometheus = bulkerProm
 
-	metrics.flushedMsgsHistogram = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name:      "bulk_flushed_msgs_total",
-		Help:      "Number of msgs flushed when bulking",
-		Namespace: namespace,
-		Subsystem: subsys,
-		Buckets:   flushedMsgsBuckets,
-	})
+	indexerProm, err := setupIndexerPrometheus(reg)
+	if err != nil {
+		return nil, nil, fmt.Errorf("setting up indexer prometheus metrics: %w", err)
+	}
 
-	metrics.flushedBytesHistogram = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name:      "bulk_flushed_msgs_bytes",
-		Help:      "Amount of bytes flushed when bulking",
-		Namespace: namespace,
-		Subsystem: subsys,
-		Buckets:   flushedBytesBuckets,
-	})
+	metrics.indexerPrometheus = indexerProm
 
-	metrics.flushReason = *prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name:      "bulk_flush_reason_total",
-		Help:      "Reason for a bulk flush",
-		Namespace: namespace,
-		Subsystem: subsys,
-	}, []string{"reason"})
-
-	metrics.indexDocumentsCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name:      "indexed_documents_total",
-		Help:      "Number of indexed documents",
-		Namespace: namespace,
-		Subsystem: subsys,
-	})
-
-	metrics.indexDocumentsBytesCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name:      "indexed_documents_bytes",
-		Help:      "Indexed documents total bytes",
-		Namespace: namespace,
-		Subsystem: subsys,
-	})
-
-	metrics.sessionIndexFailureCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name:      "session_index_failure_total",
-		Help:      "Session bulk index failure count",
-		Namespace: namespace,
-		Subsystem: subsys,
-	})
-
-	metrics.esClientReloadCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name:      "es_client_reloads_total",
-		Help:      "Number of times the ES client was reloaded",
-		Namespace: namespace,
-		Subsystem: subsys,
-	})
-
-	metrics.bulkIndexCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name:      "bulk_index_total",
-		Help:      "Number of Bulk Index calls",
-		Namespace: namespace,
-		Subsystem: subsys,
-	})
-
-	metrics.bulkIndexErrorCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name:      "bulk_index_error_total",
-		Help:      "Number of Bulk Index calls with errors",
-		Namespace: namespace,
-		Subsystem: subsys,
-	})
-
-	metrics.bulkIndexRetryCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name:      "bulk_index_retry_total",
-		Help:      "Number of Bulk Index calls retried",
-		Namespace: namespace,
-		Subsystem: subsys,
-	})
-
-	metrics.successfullyProducedMessageCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name:      "msg_produced_success_total",
-		Help:      "How many messages were produced successfully according to delivery reports",
-		Namespace: namespace,
-		Subsystem: subsys,
-	})
-	metrics.unsuccessfullyProducedMessageCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name:      "msg_produced_fail_total",
-		Help:      "How many messages were produced unsuccessfully according to delivery reports",
-		Namespace: namespace,
-		Subsystem: subsys,
-	})
-
-	errs = append(errs,
+	if err := errors.Join(
 		reg.Register(collectors.NewBuildInfoCollector()),
 		reg.Register(collectors.NewGoCollector()),
 		reg.Register(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{})),
-		reg.Register(metrics.msgConsumedSize),
-		reg.Register(metrics.msgProducedSize),
-		reg.Register(metrics.partitionAssignmentLostCounter),
-		reg.Register(metrics.rebalanceCounter),
-		reg.Register(metrics.offsetCommitCounter),
-		reg.Register(metrics.flushedMsgsHistogram),
-		reg.Register(metrics.flushedBytesHistogram),
-		reg.Register(metrics.flushReason),
-		reg.Register(metrics.indexDocumentsCounter),
-		reg.Register(metrics.indexDocumentsBytesCounter),
-		reg.Register(metrics.sessionIndexFailureCounter),
-		reg.Register(metrics.esClientReloadCounter),
-		reg.Register(metrics.bulkIndexCounter),
-		reg.Register(metrics.bulkIndexErrorCounter),
-		reg.Register(metrics.bulkIndexRetryCounter),
-		reg.Register(metrics.successfullyProducedMessageCounter),
-		reg.Register(metrics.unsuccessfullyProducedMessageCounter),
-	)
-
-	if err := errors.Join(errs...); err != nil {
-		return nil, nil, fmt.Errorf("failed to register metrics collectors: %w", err)
+	); err != nil {
+		return nil, nil, fmt.Errorf("registering go metrics: %w", err)
 	}
 
 	return metrics, reg, nil
 }
 
+func setupKafkaPrometheus(promReg prometheus.Registerer) (*kafkaPrometheus, error) {
+	metrics := &kafkaPrometheus{}
+
+	metrics.msgConsumedSize = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:                        "messages_consumed_size_bytes",
+		Help:                        "The size in bytes of the payload consumed",
+		Namespace:                   "kafka",
+		Buckets:                     computeBuckets(bytesBucketUpperLimit*bytesBucketScalingFactor, bytesBucketDensity),
+		NativeHistogramBucketFactor: nativeHistogramBucketFactor,
+	})
+
+	metrics.msgConsumedError = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:      "messages_consumed_errors_total",
+		Help:      "The number of errors consuming messages from Kafka",
+		Namespace: "kafka",
+	})
+
+	metrics.msgProducedSize = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:                        "messages_produced_size_bytes",
+		Help:                        "The size in bytes of the payload produced",
+		Namespace:                   "kafka",
+		Buckets:                     computeBuckets(bytesBucketUpperLimit*bytesBucketScalingFactor, bytesBucketDensity),
+		NativeHistogramBucketFactor: nativeHistogramBucketFactor,
+	})
+
+	metrics.msgProducedError = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:      "messages_produced_errors_total",
+		Help:      "The number of errors producing messages to Kafka",
+		Namespace: "kafka",
+	})
+
+	metrics.partitionAssignmentLost = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:      "partition_assignment_lost_total",
+		Help:      "Total number of lost partition assignments",
+		Namespace: "kafka",
+	})
+
+	metrics.rebalance = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name:      "rebalance_total",
+		Help:      "Total number of rebalances",
+		Namespace: "kafka",
+	}, []string{"reason"})
+
+	metrics.successfullyProducedMessage = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:      "message_produced_success_total",
+		Help:      "How many messages were produced successfully according to delivery reports",
+		Namespace: "kafka",
+	})
+	metrics.unsuccessfullyProducedMessage = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:      "message_produced_fail_total",
+		Help:      "How many messages were produced unsuccessfully according to delivery reports",
+		Namespace: "kafka",
+	})
+
+	if err := errors.Join(
+		promReg.Register(metrics.msgConsumedSize),
+		promReg.Register(metrics.msgProducedSize),
+		promReg.Register(metrics.partitionAssignmentLost),
+		promReg.Register(metrics.rebalance),
+		promReg.Register(metrics.successfullyProducedMessage),
+		promReg.Register(metrics.unsuccessfullyProducedMessage),
+	); err != nil {
+		return nil, fmt.Errorf("registering kafka metrics: %w", err)
+	}
+
+	return metrics, nil
+}
+
+func setupBulkerPrometheus(promReg prometheus.Registerer, maxBulkerBytes, maxBulkerMsgs, bulkerBucketsDensity int) (*bulkerPrometheus, error) {
+	metrics := &bulkerPrometheus{}
+
+	metrics.flushedMsgs = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:                        "flushed_msgs",
+		Help:                        "Number of msgs flushed when bulking",
+		Namespace:                   "bulker",
+		Buckets:                     computeBuckets(maxBulkerMsgs, bulkerBucketsDensity),
+		NativeHistogramBucketFactor: nativeHistogramBucketFactor,
+	})
+
+	metrics.flushedBytes = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:                        "flushed_size_bytes",
+		Help:                        "Amount of bytes flushed when bulking",
+		Namespace:                   "bulker",
+		Buckets:                     computeBuckets(maxBulkerBytes, bulkerBucketsDensity),
+		NativeHistogramBucketFactor: nativeHistogramBucketFactor,
+	})
+
+	metrics.flushReason = *prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name:      "flushed_reason_total",
+		Help:      "Reason for a bulk flush",
+		Namespace: "bulker",
+	}, []string{"reason"})
+
+	if err := errors.Join(
+		promReg.Register(metrics.flushReason),
+		promReg.Register(metrics.flushedBytes),
+		promReg.Register(metrics.flushedMsgs),
+	); err != nil {
+		return nil, fmt.Errorf("registering bulker metrics: %w", err)
+	}
+
+	return metrics, nil
+}
+
+func setupIndexerPrometheus(promReg prometheus.Registerer) (*indexerPrometheus, error) {
+	metrics := &indexerPrometheus{}
+
+	metrics.sessionIndexFailure = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:                        "failed_session_indexing_size_bytes",
+		Help:                        "Size in bytes of failed documents/sessions indexed",
+		Namespace:                   "indexer",
+		Buckets:                     computeBuckets(bytesBucketUpperLimit*bytesBucketScalingFactor, bytesBucketDensity),
+		NativeHistogramBucketFactor: nativeHistogramBucketFactor,
+	})
+
+	metrics.esClientReload = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:      "es_client_reloaded_total",
+		Help:      "Number of times that the ES client was reloaded",
+		Namespace: "indexer",
+	})
+
+	metrics.bulkCall = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:      "bulk_calls_total",
+		Help:      "Number of ES bulk action calls",
+		Namespace: "indexer",
+	})
+
+	metrics.bulkCallError = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:      "bulk_call_errors_total",
+		Help:      "Number of ES bulk action calls with errors",
+		Namespace: "indexer",
+	})
+
+	metrics.bulkCallRetry = prometheus.NewCounter(prometheus.CounterOpts{
+		Name:      "bulk_call_retries_total",
+		Help:      "Number of ES bulk action call retries",
+		Namespace: "indexer",
+	})
+
+	if err := errors.Join(
+		promReg.Register(metrics.sessionIndexFailure),
+		promReg.Register(metrics.esClientReload),
+		promReg.Register(metrics.bulkCall),
+		promReg.Register(metrics.bulkCallError),
+		promReg.Register(metrics.bulkCallRetry),
+	); err != nil {
+		return nil, fmt.Errorf("registering indexer metrics: %w", err)
+	}
+
+	return metrics, nil
+}
+
 // fulfills the es.bulkerMetrics interface.
-func (m *Metrics) FlushReason(reason string)     { m.flushReason.WithLabelValues(reason).Inc() }
-func (m *Metrics) FlushedBytes(numBytes float64) { m.flushedBytesHistogram.Observe(numBytes) }
-func (m *Metrics) FlushedMsgs(numMsgs float64)   { m.flushedMsgsHistogram.Observe(numMsgs) }
+func (bp *bulkerPrometheus) FlushReason(reason string) { bp.flushReason.WithLabelValues(reason).Inc() }
+func (bp *bulkerPrometheus) FlushedBytes(numBytes int) { bp.flushedBytes.Observe(float64(numBytes)) }
+func (bp *bulkerPrometheus) FlushedMsgs(numMsgs int)   { bp.flushedMsgs.Observe(float64(numMsgs)) }
 
 // fulfills the es.indexerMetrics interface.
-func (m *Metrics) BulkIndexCountInc()                   { m.bulkIndexCounter.Inc() }
-func (m *Metrics) BulkIndexErrorCountInc()              { m.bulkIndexErrorCounter.Inc() }
-func (m *Metrics) IndexedDocumentsCountAdd(num float64) { m.indexDocumentsCounter.Add(num) }
-func (m *Metrics) IndexedDocumentsBytesAdd(num float64) { m.indexDocumentsBytesCounter.Add(num) }
-func (m *Metrics) SessionIndexingFailCountInc()         { m.sessionIndexFailureCounter.Inc() }
-func (m *Metrics) ESClientReloadInc()                   { m.esClientReloadCounter.Inc() }
-
-func (m *Metrics) BulkIndexRetryCountInc() { m.bulkIndexRetryCounter.Inc() }
+func (ip *indexerPrometheus) BulkCall()      { ip.bulkCall.Inc() }
+func (ip *indexerPrometheus) BulkCallError() { ip.bulkCallError.Inc() }
+func (ip *indexerPrometheus) BulkCallRetry() { ip.bulkCallRetry.Inc() }
+func (ip *indexerPrometheus) FailedSessionIndexing(size int) {
+	ip.sessionIndexFailure.Observe(float64(size))
+}
+func (ip *indexerPrometheus) ESClientReload() { ip.esClientReload.Inc() }
 
 // fulfills the kafka.consumerMetrics interface.
-func (m *Metrics) MsgConsumedSizeObserve(num float64) { m.msgConsumedSize.Observe(num) }
-func (m *Metrics) LostPartitionAssignmentInc()        { m.partitionAssignmentLostCounter.Inc() }
-func (m *Metrics) RebalanceInc(reason string)         { m.rebalanceCounter.WithLabelValues(reason).Inc() }
+func (kp *kafkaPrometheus) MsgConsumed(size int)     { kp.msgConsumedSize.Observe(float64(size)) }
+func (kp *kafkaPrometheus) MsgConsumedError()        { kp.msgConsumedError.Inc() }
+func (kp *kafkaPrometheus) LostPartitionAssignment() { kp.partitionAssignmentLost.Inc() }
+func (kp *kafkaPrometheus) Rebalanced(reason string) { kp.rebalance.WithLabelValues(reason).Inc() }
 
 // fulfills the kafka.producerMetrics interface.
-func (m *Metrics) MsgProducedSizeObserve(num float64) { m.msgProducedSize.Observe(num) }
-func (m *Metrics) SuccessfullyProducedMsgInc()        { m.successfullyProducedMessageCounter.Inc() }
-func (m *Metrics) UnsuccessfullyProducedMsgInc()      { m.unsuccessfullyProducedMessageCounter.Inc() }
+func (kp *kafkaPrometheus) MsgProduced(size int)       { kp.msgProducedSize.Observe(float64(size)) }
+func (kp *kafkaPrometheus) MsgProducedError()          { kp.msgProducedError.Inc() }
+func (kp *kafkaPrometheus) SuccessfullyProducedMsg()   { kp.successfullyProducedMessage.Inc() }
+func (kp *kafkaPrometheus) UnsuccessfullyProducedMsg() { kp.unsuccessfullyProducedMessage.Inc() }
+
+func computeBuckets(maxBucket, density int) []float64 {
+	buckets := make([]float64, 0, density)
+
+	step := maxBucket / density
+
+	for i := step; i <= maxBucket; i += step {
+		buckets = append(buckets, float64(i))
+	}
+
+	return buckets
+}

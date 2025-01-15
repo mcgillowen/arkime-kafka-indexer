@@ -29,8 +29,8 @@ type IndexerOption func(ic *indexerConfig)
 // called correctly.
 type bulkerMetrics interface {
 	FlushReason(reason string)
-	FlushedBytes(numBytes float64)
-	FlushedMsgs(numMsgs float64)
+	FlushedBytes(numBytes int)
+	FlushedMsgs(numMsgs int)
 }
 
 // indexerMetrics is the interface defining what metrics the indexer uses.
@@ -39,12 +39,11 @@ type bulkerMetrics interface {
 type indexerMetrics interface {
 	// embededded since the indexer provides the metrics object to the bulker
 	bulkerMetrics
-	BulkIndexCountInc()
-	BulkIndexErrorCountInc()
-	IndexedDocumentsCountAdd(count float64)
-	IndexedDocumentsBytesAdd(bytes float64)
-	SessionIndexingFailCountInc()
-	ESClientReloadInc()
+	BulkCall()
+	BulkCallError()
+	BulkCallRetry()
+	FailedSessionIndexing(size int)
+	ESClientReload()
 }
 
 // bufferPool is the interface of the bytebufferpool.Pool.
