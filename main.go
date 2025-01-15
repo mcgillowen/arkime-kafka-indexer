@@ -31,6 +31,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/common/version"
 	"github.com/rs/zerolog"
 	"github.com/sourcegraph/conc"
 	"github.com/sourcegraph/conc/pool"
@@ -64,6 +65,7 @@ type envConfig struct {
 	BulkerFlushInterval                   time.Duration `default:"10s"                                                                           desc:"Maximum amount of time to buffer messages before sending them to ES" envconfig:"BULKER_FLUSH_INTERVAL"`
 	BulkerMaxMessages                     int           `default:"100"                                                                           desc:"Maximum number of messages to buffer before sending them to ES"      envconfig:"BULKER_MAX_MESSAGES"`
 	BulkerMaxBytes                        int           `default:"10_485_760"                                                                    desc:"Maximum number of bytes to buffer before sending them to ES"         envconfig:"BULKER_MAX_BYTES"` // 10mb = 10 * 1024 * 1024
+	BulkerMetricsDensity                  int           `default:"10"                                                                            desc:"How dense the bulker metrics buckets should be"                      envconfig:"BULKER_METRICS_DENSITY"`
 	ElasticService                        string        `desc:"The address of an Elasticsearch node, the client will discover the rest of nodes" envconfig:"ELASTIC_SERVICE"                                                required:"true"`
 	ElasticServicePort                    string        `default:"9200"                                                                          desc:"The ES HTTP port"                                                    envconfig:"ELASTIC_SERVICE_PORT"`
 	ElasticUseHTTPS                       bool          `default:"false"                                                                         desc:"Should the ES client communicate using HTTPS"                        envconfig:"ELASTIC_USE_HTTPS"`
@@ -88,11 +90,6 @@ type envConfig struct {
 	ConsumerChannelBufferSize             int           `default:"10"                                                                            envconfig:"CONSUMER_CHANNEL_BUFFER_SIZE"`
 	ErrorChannelBufferSize                int           `default:"10"                                                                            envconfig:"ERROR_CHANNEL_BUFFER_SIZE"`
 	ProducerChannelBufferSize             int           `default:"10"                                                                            envconfig:"PRODUCER_CHANNEL_BUFFER_SIZE"`
-	MetricsNamespace                      string        `default:"arkime"                                                                        envconfig:"METRICS_NAMESPACE"`
-	MetricsSubsystem                      string        `default:"kafkaindexer"                                                                  envconfig:"METRICS_SUBSYSTEM"`
-	MetricsPath                           string        `default:"/metrics"                                                                      envconfig:"METRICS_PATH"`
-	FlushedBytesBuckets                   []float64     `default:"50_000,100_000,500_000,1_000_000,5_000_000,25_000_000,50_000_000,75_000_000"   envconfig:"METRICS_FLUSHED_BYTES_BUCKETS"`
-	FlushedMsgsBuckets                    []float64     `default:"2,4,8,16,32,64,128,256"                                                        envconfig:"METRICS_FLUSHED_MSGS_BUCKETS"`
 }
 
 const (
@@ -269,25 +266,14 @@ func printBuildInfo(logger zerolog.Logger) {
 		logger.Fatal().Msg("unable to read build info from binary")
 	}
 
-	var arch, operatingSystem string
-
-	for _, buildSetting := range buildInfo.Settings {
-		switch buildSetting.Key {
-		case "GOARCH":
-			arch = buildSetting.Value
-		case "GOOS":
-			operatingSystem = buildSetting.Value
-		}
-	}
-
 	logger.Info().
-		Str("go_version", buildInfo.GoVersion).
-		Str("GOOS", operatingSystem).
-		Str("GOARCH", arch).
-		Str("version", version).
-		Str("build_time", date).
-		Str("commit", commit).
-		Str("built_by", builtBy).
+		Str("go_version", version.GoVersion).
+		Str("GOOS", version.GoOS).
+		Str("GOARCH", version.GoArch).
+		Str("version", version.Version).
+		Str("build_time", version.BuildDate).
+		Str("revision", version.Revision).
+		Str("built_by", version.BuildUser).
 		Msgf("Starting %s", buildInfo.Path)
 }
 
@@ -309,20 +295,19 @@ func setLogLevel(level string, logger zerolog.Logger) zerolog.Logger {
 	return logger.Level(logLevel)
 }
 
-func setupMetricsAndServer(env envConfig, logger zerolog.Logger) (*metrics.Metrics, *prometheus.Registry, *http.Server) {
+func setupMetricsAndServer(env envConfig, logger zerolog.Logger) (*metrics.Prometheus, *prometheus.Registry, *http.Server) {
 	mux := http.NewServeMux()
 
-	metrics, promReg, err := metrics.InitPrometheus(
-		env.MetricsNamespace,
-		env.MetricsSubsystem,
-		env.FlushedBytesBuckets,
-		env.FlushedMsgsBuckets,
+	metrics, promReg, err := metrics.NewPrometheus(
+		env.BulkerMaxBytes,
+		env.BulkerMaxMessages,
+		env.BulkerMetricsDensity,
 	)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to initialise prometheus metrics")
 	}
 
-	mux.Handle(env.MetricsPath, promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
+	mux.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
 
 	server := &http.Server{
 		Addr:         ":" + env.Port,
@@ -338,7 +323,7 @@ func setupMetricsAndServer(env envConfig, logger zerolog.Logger) (*metrics.Metri
 func setupIndexer(
 	env envConfig,
 	msgPool *bytebufferpool.Pool,
-	promMetrics *metrics.Metrics, promReg *prometheus.Registry,
+	promMetrics *metrics.Prometheus, promReg *prometheus.Registry,
 	logger zerolog.Logger,
 ) *es.Indexer {
 	esTransport := &http.Transport{
@@ -376,7 +361,7 @@ func setupIndexer(
 			),
 		),
 		es.WithCustomLogger(logger),
-		es.WithESClientMetrics(metrics.NewESCollectorFunc(env.MetricsNamespace, env.MetricsSubsystem), promReg),
+		es.WithESClientMetrics(metrics.NewESCollectorFunc(), promReg),
 		es.WithFlushInterval(env.BulkerFlushInterval),
 		es.WithMaxBufferedBytes(env.BulkerMaxBytes),
 		es.WithMaxBufferedMsgs(env.BulkerMaxMessages),
@@ -395,7 +380,7 @@ func setupIndexer(
 func setupKafka(
 	env envConfig,
 	msgPool *bytebufferpool.Pool,
-	metrics *metrics.Metrics,
+	metrics *metrics.Prometheus,
 	logger zerolog.Logger,
 ) (*kafka.Consumer, *kafka.Producer) {
 	useTLS := env.KafkaSSLCALocation != "" &&

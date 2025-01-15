@@ -116,8 +116,8 @@ func (b *bulker) flush(reason string) {
 		Int("flushed_bytes", flushedBytes).
 		Str("flush_reason", reason).
 		Msg("flushing buffer")
-	b.metrics.FlushedBytes(float64(flushedBytes))
-	b.metrics.FlushedMsgs(float64(b.bulkedMsgCount))
+	b.metrics.FlushedBytes(flushedBytes)
+	b.metrics.FlushedMsgs(b.bulkedMsgCount)
 	b.flushCb(b.buffer)
 	b.buffer = b.bufferPool.Get()
 	b.lastFlush = time.Now()

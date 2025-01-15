@@ -42,9 +42,10 @@ type Producer struct {
 }
 
 type producerMetrics interface {
-	MsgProducedSizeObserve(num float64)
-	SuccessfullyProducedMsgInc()
-	UnsuccessfullyProducedMsgInc()
+	MsgProduced(size int)
+	MsgProducedError()
+	SuccessfullyProducedMsg()
+	UnsuccessfullyProducedMsg()
 }
 
 // NewProducer creates an instance of a kafka.Producer configured with the provided values.
@@ -147,6 +148,8 @@ func (p *Producer) Start(ctx context.Context, msgChan <-chan *bytebufferpool.Byt
 
 			err := producer.Produce(prodMsg, deliveryChan)
 			if err != nil {
+				p.metrics.MsgProducedError()
+
 				var kafkaErr kafka.Error
 				if errors.As(err, &kafkaErr); kafkaErr.Code() == kafka.ErrQueueFull {
 					// Producer queue is full, wait for messages
@@ -154,6 +157,7 @@ func (p *Producer) Start(ctx context.Context, msgChan <-chan *bytebufferpool.Byt
 					time.Sleep(p.fullQueueCooldown)
 
 					if err := producer.Produce(prodMsg, deliveryChan); err != nil {
+						p.metrics.MsgProducedError()
 						p.logger.Error().Err(err).Msgf("error producing message async after full queue and waiting %s", p.fullQueueCooldown)
 					}
 
@@ -172,7 +176,7 @@ func (p *Producer) Start(ctx context.Context, msgChan <-chan *bytebufferpool.Byt
 				log.Trace().Msg(msg.String())
 			}
 
-			p.metrics.MsgProducedSizeObserve(float64(msg.Len()))
+			p.metrics.MsgProduced(msg.Len())
 		}(msg)
 	}
 
@@ -196,19 +200,19 @@ func (p *Producer) deliveryReportsLogger(
 				m := event
 				if m.TopicPartition.Error != nil {
 					logger.Error().Err(m.TopicPartition.Error).Msg("delivery failed")
-					p.metrics.UnsuccessfullyProducedMsgInc()
+					p.metrics.UnsuccessfullyProducedMsg()
 
 					continue
 				}
 
 				logger.Debug().Any("kafka_message", m).Msg("received a delivery report")
-				p.metrics.SuccessfullyProducedMsgInc()
+				p.metrics.SuccessfullyProducedMsg()
 			case kafka.Error:
 				logger.Error().Err(event).Msg("generic kafka client error")
-				p.metrics.UnsuccessfullyProducedMsgInc()
+				p.metrics.UnsuccessfullyProducedMsg()
 			default:
 				logger.Trace().Any("kafka_event", event).Msg("ignored event")
-				p.metrics.UnsuccessfullyProducedMsgInc()
+				p.metrics.UnsuccessfullyProducedMsg()
 			}
 		}
 	}

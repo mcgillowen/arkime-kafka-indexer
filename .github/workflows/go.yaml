@@ -1,27 +1,62 @@
-name: Go package
+name: Go
 
 on:
   push:
   pull_request:
 
 jobs:
-  Checks:
+  run:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['stable', 'oldstable']
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version: ${{ matrix.go-version }}
+          check-latest: true
 
-      - name: Install XC for running scripts in readme
-        run: go install github.com/joerdav/xc/cmd/xc@latest
-      - name: Install CI dependencies
-        run: xc deps
-      - name: Install module dependencies
-        run: go get .
-      - name: Lint module
-        run: xc lint
-      - name: Test module
-        run: xc test
+      - name: Check dependencies are tidy
+        uses: katexochen/go-tidy-check@v2
+
+      - name: Install tools
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Install dependencies
+        run: |
+          go mod download
+
+      - name: Verify dependencies
+        run: |
+          go mod verify
+
+      - name: Run govulncheck
+        run: |
+          govulncheck -test ./...
+
+      - name: Build
+        run: |
+          go build -v -o /dev/null ./...
+
+      - name: Test with Go
+        run: |
+          go test -v -json -race -shuffle=on -coverprofile=coverage-${{ matrix.go-version }}.txt ./... > TestResults-${{ matrix.go-version }}.json
+
+      - name: Upload Go test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: Go-${{ matrix.go-version }}-results
+          path: TestResults-${{ matrix.go-version }}.json
+
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v3
+        continue-on-error: true  # we don't care if it fails
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}  # set in repository settings
+          file: ./coverage-${{ matrix.go-version }}.txt  # file from the previous step
+          fail_ci_if_error: false
+  

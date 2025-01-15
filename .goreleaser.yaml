@@ -1,4 +1,6 @@
 # Make sure to check the documentation at https://goreleaser.com
+version: 2
+
 git:
   prerelease_suffix: "-"
 
@@ -12,16 +14,14 @@ before:
 builds:
   - goos:
       - linux
-      - darwin
     goarch:
       - amd64
-      - arm64
     ldflags:
       - "-s -w"
-      - "-X main.version={{.Version}}"
-      - "-X main.commit={{.Commit}}"
-      - "-X main.date={{.CommitDate}}"
-      - "-X main.builtBy=goreleaser"
+      - "-X github.com/prometheus/common/version.Version={{.Version}}"
+      - "-X github.com/prometheus/common/version.Revision={{.FullCommit}}"
+      - "-X github.com/prometheus/common/version.BuildDate={{.Date}}"
+      - "-X github.com/prometheus/common/version.BuildUser=goreleaser"
     flags:
       - -trimpath
     tags:
@@ -34,22 +34,6 @@ builds:
         env:
           - CC=x86_64-linux-gnu-gcc
           - CXX=x86_64-linux-gnu-g++
-      - goos: linux
-        goarch: arm64
-        env:
-          - CC=aarch64-linux-gnu-gcc
-          - CXX=aarch64-linux-gnu-g++
-      - goos: darwin
-        goarch: amd64
-        goamd64: v1
-        env:
-          - CC=o64-clang
-          - CXX=o64-clang++
-      - goos: darwin
-        goarch: arm64
-        env:
-          - CC=oa64-clang
-          - CXX=oa64-clang++
 
 dockers:
   # https://goreleaser.com/customization/docker/
@@ -60,27 +44,10 @@ dockers:
     goamd64: v1
     image_templates:
       - "ghcr.io/mcgillowen/{{ .ProjectName }}:{{ .Tag }}"
-      - "ghcr.io/mcgillowen/{{ .ProjectName }}:v{{ .Major }}"
-      - "ghcr.io/mcgillowen/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}"
       - "ghcr.io/mcgillowen/{{ .ProjectName }}:latest"
     build_flag_templates:
       - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.created={{.CommitDate}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-  - use: buildx
-    dockerfile: Dockerfile
-    goos: linux
-    goarch: arm64
-    image_templates:
-      - "ghcr.io/mcgillowen/{{ .ProjectName }}:{{ .Tag }}"
-      - "ghcr.io/mcgillowen/{{ .ProjectName }}:v{{ .Major }}"
-      - "ghcr.io/mcgillowen/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}"
-      - "ghcr.io/mcgillowen/{{ .ProjectName }}:latest"
-    build_flag_templates:
-      - "--platform=linux/arm64"
-      - "--label=org.opencontainers.image.created={{.CommitDate}}"
+      - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
@@ -94,11 +61,7 @@ archives:
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
-      {{- else }}{{ .Arch }}{{ end }}
-      {{- if .Arm }}v{{ .Arm }}{{ end }}
-
-snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+      {{ end }}
 
 changelog:
   sort: asc

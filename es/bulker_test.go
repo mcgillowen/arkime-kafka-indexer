@@ -31,8 +31,8 @@ type mockBulkerMetrics struct {
 }
 
 func (m *mockBulkerMetrics) FlushReason(reason string) { m.Called(reason) }
-func (m *mockBulkerMetrics) FlushedBytes(num float64)  { m.Called(num) }
-func (m *mockBulkerMetrics) FlushedMsgs(num float64)   { m.Called(num) }
+func (m *mockBulkerMetrics) FlushedBytes(num int)      { m.Called(num) }
+func (m *mockBulkerMetrics) FlushedMsgs(num int)       { m.Called(num) }
 
 type mockBulkerPool struct{}
 
@@ -46,8 +46,8 @@ func Test_bulker_flush(t *testing.T) {
 		flushCb      func(t *testing.T) func(buffer *bytebufferpool.ByteBuffer)
 		buffer       *bytebufferpool.ByteBuffer
 		flushReason  string
-		flushedBytes float64
-		flushedMsgs  float64
+		flushedBytes int
+		flushedMsgs  int
 	}
 
 	type args struct {
@@ -133,8 +133,8 @@ func Test_bulker_bulk(t *testing.T) {
 		bytesLimit   int
 		timeLimit    time.Duration
 		flushReason  string
-		flushedBytes float64
-		flushedMsgs  float64
+		flushedBytes int
+		flushedMsgs  int
 	}
 
 	type args struct {

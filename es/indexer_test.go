@@ -36,12 +36,11 @@ type mockIndexerMetrics struct {
 	mock.Mock
 }
 
-func (m *mockIndexerMetrics) BulkIndexCountInc()                   { m.Called() }
-func (m *mockIndexerMetrics) BulkIndexErrorCountInc()              { m.Called() }
-func (m *mockIndexerMetrics) IndexedDocumentsCountAdd(num float64) { m.Called(num) }
-func (m *mockIndexerMetrics) IndexedDocumentsBytesAdd(num float64) { m.Called(num) }
-func (m *mockIndexerMetrics) SessionIndexingFailCountInc()         { m.Called() }
-func (m *mockIndexerMetrics) ESClientReloadInc()                   { m.Called() }
+func (mim *mockIndexerMetrics) BulkCall()                      { mim.Called() }
+func (mim *mockIndexerMetrics) BulkCallError()                 { mim.Called() }
+func (mim *mockIndexerMetrics) BulkCallRetry()                 { mim.Called() }
+func (mim *mockIndexerMetrics) FailedSessionIndexing(size int) { mim.Called(size) }
+func (mim *mockIndexerMetrics) ESClientReload()                { mim.Called() }
 
 type mockIndexerPool struct{}
 
@@ -131,10 +130,8 @@ func TestIndexer_sendToES(t *testing.T) {
 				return mocktrans.Response, nil
 			},
 			mockCalls: map[string][]interface{}{
-				"BulkIndexCountInc":           {},
-				"IndexedDocumentsCountAdd":    {float64(0)},
-				"IndexedDocumentsBytesAdd":    {float64(0)},
-				"SessionIndexingFailCountInc": {},
+				"BulkCall":              {},
+				"FailedSessionIndexing": {14},
 			},
 			buffers: buffers{
 				in: &bytebufferpool.ByteBuffer{B: []byte(`{"index": {"_index": "test", "_id": "test"}}
@@ -174,10 +171,8 @@ func TestIndexer_sendToES(t *testing.T) {
 				return mocktrans.Response, nil
 			},
 			mockCalls: map[string][]interface{}{
-				"BulkIndexCountInc":           {},
-				"IndexedDocumentsCountAdd":    {float64(0)},
-				"IndexedDocumentsBytesAdd":    {float64(0)},
-				"SessionIndexingFailCountInc": {},
+				"BulkCall":              {},
+				"FailedSessionIndexing": {14},
 			},
 			buffers: buffers{
 				in: &bytebufferpool.ByteBuffer{B: []byte(`{"create": {"_index": "test", "_id": "test"}}

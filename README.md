@@ -117,6 +117,7 @@ Configuration of the indexer is done using environment variables following the 1
 | BulkerFlushInterval                   | BULKER_FLUSH_INTERVAL                     | time.Duration | 10s                                                                         | Maximum amount of time to buffer messages before sending them to ES              |
 | BulkerMaxMessages                     | BULKER_MAX_MESSAGES                       | int           | 100                                                                         | Maximum number of messages to buffer before sending them to ES                   |
 | BulkerMaxBytes                        | BULKER_MAX_BYTES                          | int           | 10_485_760                                                                  | Maximum number of bytes to buffer before sending them to ES                      |
+| BulkerMetricsDensity                  | BULKER_METRICS_DENSITY                    | int           | 10                                                                          | How dense the bulker metrics buckets should be                                   |
 | ElasticService                        | ELASTIC_SERVICE                           | string        |                                                                             | The address of an Elasticsearch node, the client will discover the rest of nodes |
 | ElasticServicePort                    | ELASTIC_SERVICE_PORT                      | string        | 9200                                                                        | The ES HTTP port                                                                 |
 | ElasticUseHTTPS                       | ELASTIC_USE_HTTPS                         | bool          | false                                                                       | Should the ES client communicate using HTTPS                                     |
@@ -214,7 +215,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.22.2 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.23.3 \
   --clean --skip=publish --snapshot
 ```
 
@@ -230,7 +231,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.22.2 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.23.3 \
   --clean --snapshot
 ```
 
@@ -245,7 +246,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.22.2 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.23.3 \
   --clean --skip=publish
 ```
 
@@ -263,6 +264,6 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.22.2 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.23.3 \
   release --clean
 ```

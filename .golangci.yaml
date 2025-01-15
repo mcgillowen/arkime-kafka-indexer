@@ -32,8 +32,6 @@ linters-settings:
       - dot
 
 issues:
-  exclude-files:
-    - version.go
   exclude-rules:
     - path: _test\.go
       linters:

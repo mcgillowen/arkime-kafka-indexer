@@ -262,12 +262,12 @@ func (i *Indexer) sendToES(in *bytebufferpool.ByteBuffer, logger zerolog.Logger)
 		return nil
 	}
 
-	i.metrics.BulkIndexCountInc()
+	i.metrics.BulkCall()
 
 	resp, err := i.client.Bulk(bytes.NewReader(in.B), i.client.Bulk.WithTimeout(i.indexerConfig.bulkTimeout))
 	if err != nil {
 		logger.Error().Err(err).Msgf("error sending bulk request")
-		i.metrics.BulkIndexErrorCountInc()
+		i.metrics.BulkCallError()
 
 		return nil
 	}
@@ -276,6 +276,7 @@ func (i *Indexer) sendToES(in *bytebufferpool.ByteBuffer, logger zerolog.Logger)
 	logger.Debug().Msg("sent bulk request")
 
 	if resp.IsError() {
+		i.metrics.BulkCallError()
 		i.handleResponseError(resp, logger)
 	}
 
@@ -287,19 +288,14 @@ func (i *Indexer) sendToES(in *bytebufferpool.ByteBuffer, logger zerolog.Logger)
 		return nil
 	}
 
-	if !jsonBody.HasErrors {
-		i.metrics.IndexedDocumentsCountAdd(float64(len(jsonBody.Items)))
-		i.metrics.IndexedDocumentsBytesAdd(float64(indexedDocsBytes))
-
-		return nil
+	if jsonBody.HasErrors {
+		return i.parseESErrors(in.B, jsonBody, logger)
 	}
 
-	return i.parseESErrors(in.B, jsonBody, logger)
+	return nil
 }
 
 func (i *Indexer) handleResponseError(resp *esapi.Response, logger zerolog.Logger) {
-	i.metrics.BulkIndexErrorCountInc()
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logger.Error().Err(err).Msgf("error reading response body")
@@ -339,12 +335,9 @@ func (i *Indexer) parseESErrors(bulkBytes []byte, jsonBody esutil.BulkIndexerRes
 
 			failedItems++
 
-			i.metrics.SessionIndexingFailCountInc()
+			i.metrics.FailedSessionIndexing(len(bulkLines[index*2+1]))
 		}
 	}
-
-	i.metrics.IndexedDocumentsCountAdd(float64(len(jsonBody.Items) - failedItems))
-	i.metrics.IndexedDocumentsBytesAdd(float64(len(bulkBytes) - out.Len()))
 
 	return out
 }
@@ -384,7 +377,7 @@ func (i *Indexer) CheckESStatus() error {
 	}
 
 	i.logger.Info().Msg("reloading client because of too many dead connections")
-
+	i.metrics.ESClientReload()
 	// if percentage of dead connections is higher than the allowed maximum
 	// percentage then reload the client
 	err = i.client.DiscoverNodes()

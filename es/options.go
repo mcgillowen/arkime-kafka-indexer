@@ -63,10 +63,10 @@ func WithRetryBackoffFunc(retryBackoffFunc func(attempt int) time.Duration) Inde
 func RetryBackoffFunc(
 	minimumBackoff time.Duration,
 	logger zerolog.Logger,
-	metrics *metrics.Metrics,
+	metrics *metrics.Prometheus,
 ) func(attempt int) time.Duration {
 	return func(attempt int) time.Duration {
-		metrics.BulkIndexRetryCountInc()
+		metrics.BulkCallRetry()
 
 		backoffTime := minimumBackoff + time.Duration(math.Exp2(float64(attempt)))*10*time.Millisecond
 		logger.Debug().Dur("backoff_time", backoffTime).Int("attempt", attempt).Msg("retrying")
