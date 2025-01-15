@@ -4,7 +4,11 @@ updates:
     directory: "/"
     schedule:
       interval: daily
-  - package-ecosystem: GitHub-actions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: daily
+  - package-ecosystem: docker
     directory: "/"
     schedule:
       interval: daily
