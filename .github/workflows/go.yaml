@@ -53,7 +53,7 @@ jobs:
           path: TestResults-${{ matrix.go-version }}.json
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         continue-on-error: true  # we don't care if it fails
         with:
           token: ${{secrets.CODECOV_TOKEN}}  # set in repository settings
