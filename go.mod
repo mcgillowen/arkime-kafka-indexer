@@ -9,7 +9,7 @@ require (
 	github.com/goccy/go-json v0.10.4
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/prometheus/client_golang v1.20.5
-	github.com/prometheus/common v0.61.0
+	github.com/prometheus/common v0.62.0
 	github.com/rs/zerolog v1.33.0
 	github.com/rzajac/zltest v0.12.0
 	github.com/sourcegraph/conc v0.3.0
