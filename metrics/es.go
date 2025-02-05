@@ -136,13 +136,13 @@ func (ec *ESCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	ch <- prometheus.MustNewConstMetric(ec.clientRequestsMetric, prometheus.CounterValue, float64(metrics.Requests))
-	ch <- prometheus.MustNewConstMetric(ec.clientFailuresMetric, prometheus.CounterValue, float64(metrics.Failures))
+	ch <- prometheus.MustNewConstMetric(ec.clientRequestsMetric, prometheus.GaugeValue, float64(metrics.Requests))
+	ch <- prometheus.MustNewConstMetric(ec.clientFailuresMetric, prometheus.GaugeValue, float64(metrics.Failures))
 
 	for statusCode, count := range metrics.Responses {
 		ch <- prometheus.MustNewConstMetric(
 			ec.clientResponsesMetric,
-			prometheus.CounterValue,
+			prometheus.GaugeValue,
 			float64(count),
 			strconv.Itoa(statusCode),
 		)
@@ -162,7 +162,7 @@ func (ec *ESCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 		ch <- prometheus.MustNewConstMetric(
 			ec.connectionFailuresMetric,
-			prometheus.CounterValue,
+			prometheus.GaugeValue,
 			float64(connection.Failures),
 			connection.URL,
 		)
