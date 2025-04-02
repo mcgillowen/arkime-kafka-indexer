@@ -2,15 +2,13 @@ module github.com/mcgillowen/arkime-kafka-indexer
 
 go 1.24.2
 
-toolchain go1.24.1
-
 require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.8.0
 	github.com/elastic/elastic-transport-go/v8 v8.6.1
 	github.com/elastic/go-elasticsearch/v8 v8.17.0
 	github.com/goccy/go-json v0.10.5
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/prometheus/client_golang v1.21.1
+	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/common v0.62.0
 	github.com/rs/zerolog v1.33.0
 	github.com/rzajac/zltest v0.12.0
