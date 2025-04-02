@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['stable', 'oldstable']
+        go-version: ['stable']
     steps:
       - uses: actions/checkout@v4
 
@@ -56,7 +56,6 @@ jobs:
         uses: codecov/codecov-action@v5
         continue-on-error: true  # we don't care if it fails
         with:
-          token: ${{secrets.CODECOV_TOKEN}}  # set in repository settings
-          file: ./coverage-${{ matrix.go-version }}.txt  # file from the previous step
+          files: ./coverage-${{ matrix.go-version }}.txt  # file from the previous step
           fail_ci_if_error: false
   

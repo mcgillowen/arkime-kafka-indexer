@@ -142,11 +142,6 @@ Configuration of the indexer is done using environment variables following the 1
 | ConsumerChannelBufferSize             | CONSUMER_CHANNEL_BUFFER_SIZE              | int           | 10                                                                          |                                                                                  |
 | ErrorChannelBufferSize                | ERROR_CHANNEL_BUFFER_SIZE                 | int           | 10                                                                          |                                                                                  |
 | ProducerChannelBufferSize             | PRODUCER_CHANNEL_BUFFER_SIZE              | int           | 10                                                                          |                                                                                  |
-| MetricsNamespace                      | METRICS_NAMESPACE                         | string        | arkime                                                                      |                                                                                  |
-| MetricsSubsystem                      | METRICS_SUBSYSTEM                         | string        | kafkaindexer                                                                |                                                                                  |
-| MetricsPath                           | METRICS_PATH                              | string        | /metrics                                                                    |                                                                                  |
-| FlushedBytesBuckets                   | METRICS_FLUSHED_BYTES_BUCKETS             | []float64     | 50_000,100_000,500_000,1_000_000,5_000_000,25_000_000,50_000_000,75_000_000 |                                                                                  |
-| FlushedMsgsBuckets                    | METRICS_FLUSHED_MSGS_BUCKETS              | []float64     | 2,4,8,16,32,64,128,256                                                      |                                                                                  |
 
 
 ## Tasks
@@ -163,7 +158,7 @@ Installs the dependencies for building, formatting, linting, etc.
 # Installs gofumpt for formatting the source code with extra rules
 go install mvdan.cc/gofumpt@latest
 # Installs golangci-lint for linting, uses the .golangci.yaml
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.62.2
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.0.2
 # Installs the Go vulnerability checking tool
 go install golang.org/x/vuln/cmd/govulncheck@latest
 ```
@@ -215,7 +210,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.23.3 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.24.2 \
   --clean --skip=publish --snapshot
 ```
 
@@ -231,7 +226,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.23.3 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.24.2 \
   --clean --snapshot
 ```
 
@@ -246,7 +241,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.23.3 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.24.2 \
   --clean --skip=publish
 ```
 
@@ -264,6 +259,6 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.23.3 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.24.2 \
   release --clean
 ```

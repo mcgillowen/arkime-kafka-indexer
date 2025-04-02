@@ -1,51 +1,68 @@
+version: "2"
 run:
   modules-download-mode: readonly
-  timeout: 2m
-
-linters-settings:
-  varnamelen:
-    max-distance: 10
-    ignore-names:
-      - err
-      - wg
-      - ch
-      - in
-      - out
-      - tt
-  funlen:
-    lines: 120
-    statements: 70
-  lll:
-    line-length: 135
-  nolintlint:
-    require-explanation: true
-    require-specific: true
-  paralleltest:
-    ignore-missing: true
-  gci:
-    skip-generated: true
-    sections:
-      - standard
-      - default
-      - prefix(github.com/mcgillowen/arkime-kafka-indexer)
-      - blank
-      - dot
-
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - funlen
-        - dupl
-
 linters:
-  enable-all: true
-
+  default: all
   disable:
-    - exhaustruct
-    - nlreturn
     - cyclop
+    - depguard
+    - exhaustruct
     - gocognit
     - lll
-    - depguard
-    - exportloopref # Deprecated
+    - nlreturn
+  settings:
+    funlen:
+      lines: 120
+      statements: 70
+    lll:
+      line-length: 135
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    paralleltest:
+      ignore-missing: true
+    varnamelen:
+      max-distance: 10
+      ignore-names:
+        - err
+        - wg
+        - ch
+        - in
+        - out
+        - tt
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - dupl
+          - funlen
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/mcgillowen/arkime-kafka-indexer)
+        - blank
+        - dot
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
