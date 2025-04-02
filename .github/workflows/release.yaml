@@ -23,8 +23,6 @@ jobs:
         with:
           go-version: stable
       - run: go install github.com/joerdav/xc/cmd/xc@latest
-      #- name: release dry run
-      #  run: xc release-dry-run
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
