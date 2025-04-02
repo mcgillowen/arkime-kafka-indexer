@@ -142,11 +142,6 @@ Configuration of the indexer is done using environment variables following the 1
 | ConsumerChannelBufferSize             | CONSUMER_CHANNEL_BUFFER_SIZE              | int           | 10                                                                          |                                                                                  |
 | ErrorChannelBufferSize                | ERROR_CHANNEL_BUFFER_SIZE                 | int           | 10                                                                          |                                                                                  |
 | ProducerChannelBufferSize             | PRODUCER_CHANNEL_BUFFER_SIZE              | int           | 10                                                                          |                                                                                  |
-| MetricsNamespace                      | METRICS_NAMESPACE                         | string        | arkime                                                                      |                                                                                  |
-| MetricsSubsystem                      | METRICS_SUBSYSTEM                         | string        | kafkaindexer                                                                |                                                                                  |
-| MetricsPath                           | METRICS_PATH                              | string        | /metrics                                                                    |                                                                                  |
-| FlushedBytesBuckets                   | METRICS_FLUSHED_BYTES_BUCKETS             | []float64     | 50_000,100_000,500_000,1_000_000,5_000_000,25_000_000,50_000_000,75_000_000 |                                                                                  |
-| FlushedMsgsBuckets                    | METRICS_FLUSHED_MSGS_BUCKETS              | []float64     | 2,4,8,16,32,64,128,256                                                      |                                                                                  |
 
 
 ## Tasks
