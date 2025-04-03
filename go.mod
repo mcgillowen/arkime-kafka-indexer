@@ -1,7 +1,6 @@
 module github.com/mcgillowen/arkime-kafka-indexer
 
 go 1.24.2
-
 require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.8.0
 	github.com/elastic/elastic-transport-go/v8 v8.6.1
@@ -10,7 +9,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/prometheus/client_golang v1.21.1
 	github.com/prometheus/common v0.62.0
-	github.com/rs/zerolog v1.33.0
+	github.com/rs/zerolog v1.34.0
 	github.com/rzajac/zltest v0.12.0
 	github.com/sourcegraph/conc v0.3.0
 	github.com/stretchr/testify v1.10.0
