@@ -1,7 +1,6 @@
 module github.com/mcgillowen/arkime-kafka-indexer
 
 go 1.24.2
-
 require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.8.0
 	github.com/elastic/elastic-transport-go/v8 v8.6.1
@@ -9,7 +8,7 @@ require (
 	github.com/goccy/go-json v0.10.5
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/prometheus/client_golang v1.21.1
-	github.com/prometheus/common v0.62.0
+	github.com/prometheus/common v0.63.0
 	github.com/rs/zerolog v1.33.0
 	github.com/rzajac/zltest v0.12.0
 	github.com/sourcegraph/conc v0.3.0
@@ -36,7 +35,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.33.0 // indirect
 	go.opentelemetry.io/otel/trace v1.33.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
-	google.golang.org/protobuf v1.36.3 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
