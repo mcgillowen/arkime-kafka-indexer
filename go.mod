@@ -4,7 +4,7 @@ go 1.24.2
 
 require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.8.0
-	github.com/elastic/elastic-transport-go/v8 v8.6.1
+	github.com/elastic/elastic-transport-go/v8 v8.7.0
 	github.com/elastic/go-elasticsearch/v8 v8.17.0
 	github.com/goccy/go-json v0.10.5
 	github.com/kelseyhightower/envconfig v1.4.0
