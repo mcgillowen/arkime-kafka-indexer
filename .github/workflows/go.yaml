@@ -47,7 +47,7 @@ jobs:
           go test -v -json -race -shuffle=on -coverprofile=coverage-${{ matrix.go-version }}.txt ./... > TestResults-${{ matrix.go-version }}.json
 
       - name: Upload Go test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Go-${{ matrix.go-version }}-results
           path: TestResults-${{ matrix.go-version }}.json
