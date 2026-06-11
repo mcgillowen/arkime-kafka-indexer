@@ -140,6 +140,7 @@ func (ec *ESCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	ch <- prometheus.MustNewConstMetric(ec.clientRequestsMetric, prometheus.GaugeValue, float64(metrics.Requests))
+
 	ch <- prometheus.MustNewConstMetric(ec.clientFailuresMetric, prometheus.GaugeValue, float64(metrics.Failures))
 
 	for statusCode, count := range metrics.Responses {
