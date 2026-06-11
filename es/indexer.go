@@ -254,6 +254,54 @@ func (i *Indexer) Start(
 	}
 }
 
+func (i *Indexer) CheckESStatus() error {
+	m, err := i.client.Metrics()
+	if err != nil {
+		return fmt.Errorf("getting metrics: %w", err)
+	}
+
+	totalConnections := len(m.Connections)
+	deadConnections := 0
+
+	for _, connectionStringer := range m.Connections {
+		cm, ok := connectionStringer.(elastictransport.ConnectionMetric)
+		if !ok {
+			deadConnections++
+		}
+
+		if cm.IsDead {
+			deadConnections++
+		}
+	}
+
+	deadPercentage := int(float32(deadConnections) / float32(totalConnections) * 100) //nolint:mnd // standard multiplier for percentage
+
+	i.logger.Debug().
+		Int("total_connections", totalConnections).
+		Int("dead_connections", deadConnections).
+		Int("dead_percentage", deadPercentage).
+		Msg("ES connections status")
+
+	// if percentage of dead connections is less than the maxmimum do nothing
+	if deadPercentage < i.indexerConfig.maxDeadPercentage {
+		i.logger.Debug().Msg("dead percentage below threshold")
+		return nil
+	}
+
+	i.logger.Info().Msg("reloading client because of too many dead connections")
+	i.metrics.ESClientReload()
+	// if percentage of dead connections is higher than the allowed maximum
+	// percentage then reload the client
+	err = i.client.DiscoverNodes()
+	if err != nil {
+		return fmt.Errorf("reloading client: %w", err)
+	}
+
+	i.logger.Debug().Msg("client reloaded because too many dead connections")
+
+	return nil
+}
+
 func (i *Indexer) sendToES(in *bytebufferpool.ByteBuffer, logger zerolog.Logger) *bytebufferpool.ByteBuffer {
 	defer i.bulkPool.Put(in)
 
@@ -273,6 +321,7 @@ func (i *Indexer) sendToES(in *bytebufferpool.ByteBuffer, logger zerolog.Logger)
 	}
 
 	defer resp.Body.Close()
+
 	logger.Debug().Msg("sent bulk request")
 
 	if resp.IsError() {
@@ -340,52 +389,4 @@ func (i *Indexer) parseESErrors(bulkBytes []byte, jsonBody esutil.BulkIndexerRes
 	}
 
 	return out
-}
-
-func (i *Indexer) CheckESStatus() error {
-	m, err := i.client.Metrics()
-	if err != nil {
-		return fmt.Errorf("getting metrics: %w", err)
-	}
-
-	totalConnections := len(m.Connections)
-	deadConnections := 0
-
-	for _, connectionStringer := range m.Connections {
-		cm, ok := connectionStringer.(elastictransport.ConnectionMetric)
-		if !ok {
-			deadConnections++
-		}
-
-		if cm.IsDead {
-			deadConnections++
-		}
-	}
-
-	deadPercentage := int(float32(deadConnections) / float32(totalConnections) * 100) //nolint:mnd // standard multiplier for percentage
-
-	i.logger.Debug().
-		Int("total_connections", totalConnections).
-		Int("dead_connections", deadConnections).
-		Int("dead_percentage", deadPercentage).
-		Msg("ES connections status")
-
-	// if percentage of dead connections is less than the maxmimum do nothing
-	if deadPercentage < i.indexerConfig.maxDeadPercentage {
-		i.logger.Debug().Msg("dead percentage below threshold")
-		return nil
-	}
-
-	i.logger.Info().Msg("reloading client because of too many dead connections")
-	i.metrics.ESClientReload()
-	// if percentage of dead connections is higher than the allowed maximum
-	// percentage then reload the client
-	err = i.client.DiscoverNodes()
-	if err != nil {
-		return fmt.Errorf("reloading client: %w", err)
-	}
-
-	i.logger.Debug().Msg("client reloaded because too many dead connections")
-
-	return nil
 }

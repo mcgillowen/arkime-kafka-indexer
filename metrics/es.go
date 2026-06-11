@@ -120,6 +120,7 @@ func (ec *ESCollector) Describe(ch chan<- *prometheus.Desc) {
 		if !ok {
 			ch <- ec.invalidConnectionMetric
 		}
+
 		ch <- ec.connectionFailuresMetric
 	}
 
@@ -160,6 +161,7 @@ func (ec *ESCollector) Collect(ch chan<- prometheus.Metric) {
 
 			continue
 		}
+
 		ch <- prometheus.MustNewConstMetric(
 			ec.connectionFailuresMetric,
 			prometheus.GaugeValue,
