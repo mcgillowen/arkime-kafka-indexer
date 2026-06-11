@@ -1,0 +1,18 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - wsl_v5
+  disable:
+    - noinlineerr
+
+linters-settings:
+  wsl_v5:
+    allow-first-in-block: true
+    allow-whole-block: false
+    branch-max-lines: 2
+
+issues:
+  # allow default excludes, keep noise low
+  exclude-use-default: true
