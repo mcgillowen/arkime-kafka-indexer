@@ -66,3 +66,23 @@ formatters:
       - third_party$
       - builtin$
       - examples$
+
+# >>> appended by automation to ensure wsl_v5 enabled and noinlineerr disabled
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - wsl_v5
+  disable:
+    - noinlineerr
+
+linters-settings:
+  wsl_v5:
+    allow-first-in-block: true
+    allow-whole-block: false
+    branch-max-lines: 2
+
+issues:
+  exclude-use-default: true
+# <<< end appended block
