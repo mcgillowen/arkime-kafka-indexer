@@ -168,7 +168,7 @@ func setupKafkaPrometheus(promReg prometheus.Registerer) (*kafkaPrometheus, erro
 		Namespace: "kafka",
 	})
 
-	err = errors.Join(
+	err := errors.Join(
 		promReg.Register(metrics.msgConsumedSize),
 		promReg.Register(metrics.msgProducedSize),
 		promReg.Register(metrics.partitionAssignmentLost),
@@ -208,7 +208,7 @@ func setupBulkerPrometheus(promReg prometheus.Registerer, maxBulkerBytes, maxBul
 		Namespace: "bulker",
 	}, []string{"reason"})
 
-	err = errors.Join(
+	err := errors.Join(
 		promReg.Register(metrics.flushReason),
 		promReg.Register(metrics.flushedBytes),
 		promReg.Register(metrics.flushedMsgs),
@@ -255,7 +255,7 @@ func setupIndexerPrometheus(promReg prometheus.Registerer) (*indexerPrometheus, 
 		Namespace: "indexer",
 	})
 
-	err = errors.Join(
+	err := errors.Join(
 		promReg.Register(metrics.sessionIndexFailure),
 		promReg.Register(metrics.esClientReload),
 		promReg.Register(metrics.bulkCall),
