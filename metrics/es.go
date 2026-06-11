@@ -111,6 +111,7 @@ func (ec *ESCollector) Describe(ch chan<- *prometheus.Desc) {
 	}
 
 	ch <- ec.clientRequestsMetric
+
 	ch <- ec.clientFailuresMetric
 
 	ch <- ec.clientResponsesMetric
@@ -125,6 +126,7 @@ func (ec *ESCollector) Describe(ch chan<- *prometheus.Desc) {
 	}
 
 	ch <- ec.totalConnectionsMetric
+
 	ch <- ec.deadConnectionsMetric
 }
 

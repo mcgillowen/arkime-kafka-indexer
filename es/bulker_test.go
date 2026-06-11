@@ -64,6 +64,7 @@ func Test_bulker_flush(t *testing.T) {
 			fields: fields{
 				func(t *testing.T) func(buffer *bytebufferpool.ByteBuffer) {
 					t.Helper()
+
 					return func(buffer *bytebufferpool.ByteBuffer) {
 						assert.Equal(t, []byte{}, buffer.B, "buffer should be empty")
 					}
@@ -84,6 +85,7 @@ func Test_bulker_flush(t *testing.T) {
 			fields: fields{
 				func(t *testing.T) func(buffer *bytebufferpool.ByteBuffer) {
 					t.Helper()
+
 					return func(buffer *bytebufferpool.ByteBuffer) {
 						assert.Equal(t, []byte("test"), buffer.B, "buffer should be non-empty")
 					}
@@ -152,6 +154,7 @@ func Test_bulker_bulk(t *testing.T) {
 			fields: fields{
 				func(t *testing.T) func(buffer *bytebufferpool.ByteBuffer) {
 					t.Helper()
+
 					return func(buffer *bytebufferpool.ByteBuffer) {
 						assert.Equal(t, []byte{}, buffer.B, "buffer should be empty")
 					}

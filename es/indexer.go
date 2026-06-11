@@ -201,6 +201,7 @@ func (i *Indexer) Start(
 			i.msgPool.Put(in)
 			return
 		}
+
 		errorChan <- in
 	}
 
