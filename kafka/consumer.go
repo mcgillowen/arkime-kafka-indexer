@@ -169,6 +169,7 @@ func (c *Consumer) Start(
 
 					continue
 				}
+
 				msgChan <- msgBuf
 
 				c.logger.Debug().Msg("sent message to channel")
