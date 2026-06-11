@@ -102,11 +102,12 @@ func NewPrometheus(
 
 	metrics.indexerPrometheus = indexerProm
 
-	if err := errors.Join(
+	err := errors.Join(
 		reg.Register(collectors.NewBuildInfoCollector()),
 		reg.Register(collectors.NewGoCollector()),
 		reg.Register(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{})),
-	); err != nil {
+	)
+	if err != nil {
 		return nil, nil, fmt.Errorf("registering go metrics: %w", err)
 	}
 
@@ -167,14 +168,15 @@ func setupKafkaPrometheus(promReg prometheus.Registerer) (*kafkaPrometheus, erro
 		Namespace: "kafka",
 	})
 
-	if err := errors.Join(
+	err := errors.Join(
 		promReg.Register(metrics.msgConsumedSize),
 		promReg.Register(metrics.msgProducedSize),
 		promReg.Register(metrics.partitionAssignmentLost),
 		promReg.Register(metrics.rebalance),
 		promReg.Register(metrics.successfullyProducedMessage),
 		promReg.Register(metrics.unsuccessfullyProducedMessage),
-	); err != nil {
+	)
+	if err != nil {
 		return nil, fmt.Errorf("registering kafka metrics: %w", err)
 	}
 
@@ -206,11 +208,12 @@ func setupBulkerPrometheus(promReg prometheus.Registerer, maxBulkerBytes, maxBul
 		Namespace: "bulker",
 	}, []string{"reason"})
 
-	if err := errors.Join(
+	err := errors.Join(
 		promReg.Register(metrics.flushReason),
 		promReg.Register(metrics.flushedBytes),
 		promReg.Register(metrics.flushedMsgs),
-	); err != nil {
+	)
+	if err != nil {
 		return nil, fmt.Errorf("registering bulker metrics: %w", err)
 	}
 
@@ -252,13 +255,14 @@ func setupIndexerPrometheus(promReg prometheus.Registerer) (*indexerPrometheus, 
 		Namespace: "indexer",
 	})
 
-	if err := errors.Join(
+	err := errors.Join(
 		promReg.Register(metrics.sessionIndexFailure),
 		promReg.Register(metrics.esClientReload),
 		promReg.Register(metrics.bulkCall),
 		promReg.Register(metrics.bulkCallError),
 		promReg.Register(metrics.bulkCallRetry),
-	); err != nil {
+	)
+	if err != nil {
 		return nil, fmt.Errorf("registering indexer metrics: %w", err)
 	}
 

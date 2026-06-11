@@ -84,7 +84,7 @@ func TestIndexer_sendToES(t *testing.T) {
 		name               string
 		responseBody       io.ReadCloser
 		roundtripFn        func(req *http.Request) (*http.Response, error)
-		mockCalls          map[string][]interface{}
+		mockCalls          map[string][]any
 		buffers            buffers
 		numLogErrorEntries int
 	}
@@ -94,7 +94,7 @@ func TestIndexer_sendToES(t *testing.T) {
 			name:         "no error response",
 			responseBody: io.NopCloser(strings.NewReader(`{"took":0,"errors":false}`)),
 			roundtripFn:  func(_ *http.Request) (*http.Response, error) { return mocktrans.Response, nil },
-			mockCalls:    map[string][]interface{}{},
+			mockCalls:    map[string][]any{},
 			buffers: buffers{
 				in: &bytebufferpool.ByteBuffer{},
 			},
@@ -129,7 +129,7 @@ func TestIndexer_sendToES(t *testing.T) {
 
 				return mocktrans.Response, nil
 			},
-			mockCalls: map[string][]interface{}{
+			mockCalls: map[string][]any{
 				"BulkCall":              {},
 				"FailedSessionIndexing": {14},
 			},
@@ -170,7 +170,7 @@ func TestIndexer_sendToES(t *testing.T) {
 
 				return mocktrans.Response, nil
 			},
-			mockCalls: map[string][]interface{}{
+			mockCalls: map[string][]any{
 				"BulkCall":              {},
 				"FailedSessionIndexing": {14},
 			},
