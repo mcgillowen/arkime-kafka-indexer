@@ -112,7 +112,7 @@ func (c *Consumer) Start(
 	if err != nil {
 		return fmt.Errorf("error instantiating kafka consumer on %q: %w", c.bootstrapServer, err)
 	}
-	defer consumer.Close()
+	defer func() { _ = consumer.Close() }()
 
 	c.logger.Debug().Msg("*kafka.Consumer created")
 

@@ -60,7 +60,7 @@ func testClientConnection(client *elasticsearch.Client) error {
 	if err != nil {
 		return fmt.Errorf("error discarding response body: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to test client connection: %w", errPingingCluster)
@@ -321,7 +321,7 @@ func (i *Indexer) sendToES(in *bytebufferpool.ByteBuffer, logger zerolog.Logger)
 		return nil
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	logger.Debug().Msg("sent bulk request")
 
