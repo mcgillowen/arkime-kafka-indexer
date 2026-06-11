@@ -60,6 +60,7 @@ func testClientConnection(client *elasticsearch.Client) error {
 	if err != nil {
 		return fmt.Errorf("error discarding response body: %w", err)
 	}
+
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
