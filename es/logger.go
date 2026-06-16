@@ -85,5 +85,5 @@ func (l *Logger) LogRoundTrip(
 // RequestBodyEnabled makes the client pass request body to logger.
 func (l *Logger) RequestBodyEnabled() bool { return true }
 
-// RequestBodyEnabled makes the client pass response body to logger.
+// ResponseBodyEnabled makes the client pass response body to logger.
 func (l *Logger) ResponseBodyEnabled() bool { return true }

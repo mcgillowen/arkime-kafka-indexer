@@ -116,10 +116,7 @@ func WithMaxBufferedMsgs(maxMsgs int) IndexerOption {
 // WithMaxBufferedBytes sets the maximum amount of bytes to be buffered before flushing to ES.
 func WithMaxBufferedBytes(maxBytes int) IndexerOption {
 	return func(ic *indexerConfig) {
-		ic.maxBufferedBytes = maxBytes
-		if bulkMaxBytesLimit < ic.maxBufferedBytes {
-			ic.maxBufferedBytes = bulkMaxBytesLimit
-		}
+		ic.maxBufferedBytes = int(math.Min(float64(maxBytes), float64(bulkMaxBytesLimit)))
 	}
 }
 

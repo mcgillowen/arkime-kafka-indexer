@@ -338,7 +338,8 @@ func setupIndexer(
 		ExpectContinueTimeout: env.ElasticTransportExpectContinueTimeout,
 	}
 
-	indexer, err := es.NewIndexer(env.ElasticService, env.ElasticServicePort,
+	indexer, err := es.NewIndexer(
+		env.ElasticService, env.ElasticServicePort,
 		env.ElasticUseHTTPS,
 		msgPool,
 		promMetrics,

@@ -10,6 +10,9 @@ linters:
     - gocognit
     - lll
     - nlreturn
+    - noinlineerr
+    - wsl
+    - gomodguard
   settings:
     funlen:
       lines: 120

@@ -111,6 +111,7 @@ func (ec *ESCollector) Describe(ch chan<- *prometheus.Desc) {
 	}
 
 	ch <- ec.clientRequestsMetric
+
 	ch <- ec.clientFailuresMetric
 
 	ch <- ec.clientResponsesMetric
@@ -120,10 +121,12 @@ func (ec *ESCollector) Describe(ch chan<- *prometheus.Desc) {
 		if !ok {
 			ch <- ec.invalidConnectionMetric
 		}
+
 		ch <- ec.connectionFailuresMetric
 	}
 
 	ch <- ec.totalConnectionsMetric
+
 	ch <- ec.deadConnectionsMetric
 }
 
@@ -137,6 +140,7 @@ func (ec *ESCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	ch <- prometheus.MustNewConstMetric(ec.clientRequestsMetric, prometheus.GaugeValue, float64(metrics.Requests))
+
 	ch <- prometheus.MustNewConstMetric(ec.clientFailuresMetric, prometheus.GaugeValue, float64(metrics.Failures))
 
 	for statusCode, count := range metrics.Responses {
@@ -160,6 +164,7 @@ func (ec *ESCollector) Collect(ch chan<- prometheus.Metric) {
 
 			continue
 		}
+
 		ch <- prometheus.MustNewConstMetric(
 			ec.connectionFailuresMetric,
 			prometheus.GaugeValue,

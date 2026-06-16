@@ -121,6 +121,7 @@ func (p *Producer) Start(ctx context.Context, msgChan <-chan *bytebufferpool.Byt
 
 		producer.Close()
 	}()
+
 	p.logger.Debug().Msg("*kafka.Producer created")
 
 	var deliveryChan chan kafka.Event
@@ -134,6 +135,7 @@ func (p *Producer) Start(ctx context.Context, msgChan <-chan *bytebufferpool.Byt
 	for msg := range msgChan {
 		func(msg *bytebufferpool.ByteBuffer) {
 			defer p.msgPool.Put(msg)
+
 			p.logger.Debug().Msg("read message from channel")
 
 			if p.logger.GetLevel() == zerolog.TraceLevel {
