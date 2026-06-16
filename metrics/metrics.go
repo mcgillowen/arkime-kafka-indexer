@@ -29,6 +29,10 @@ const (
 	bytesBucketScalingFactor    = 1024
 	bytesBucketDensity          = 32
 	bytesBucketUpperLimit       = 1280
+
+	kafkaNamespace   = "kafka"
+	bulkerNamespace  = "bulker"
+	indexerNamespace = "indexer"
 )
 
 // Prometheus struct contains the various prometheus metrics collected by the indexer.
@@ -120,7 +124,7 @@ func setupKafkaPrometheus(promReg prometheus.Registerer) (*kafkaPrometheus, erro
 	metrics.msgConsumedSize = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:                        "messages_consumed_size_bytes",
 		Help:                        "The size in bytes of the payload consumed",
-		Namespace:                   "kafka",
+		Namespace:                   kafkaNamespace,
 		Buckets:                     computeBuckets(bytesBucketUpperLimit*bytesBucketScalingFactor, bytesBucketDensity),
 		NativeHistogramBucketFactor: nativeHistogramBucketFactor,
 	})
@@ -128,13 +132,13 @@ func setupKafkaPrometheus(promReg prometheus.Registerer) (*kafkaPrometheus, erro
 	metrics.msgConsumedError = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:      "messages_consumed_errors_total",
 		Help:      "The number of errors consuming messages from Kafka",
-		Namespace: "kafka",
+		Namespace: kafkaNamespace,
 	})
 
 	metrics.msgProducedSize = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:                        "messages_produced_size_bytes",
 		Help:                        "The size in bytes of the payload produced",
-		Namespace:                   "kafka",
+		Namespace:                   kafkaNamespace,
 		Buckets:                     computeBuckets(bytesBucketUpperLimit*bytesBucketScalingFactor, bytesBucketDensity),
 		NativeHistogramBucketFactor: nativeHistogramBucketFactor,
 	})
@@ -142,30 +146,30 @@ func setupKafkaPrometheus(promReg prometheus.Registerer) (*kafkaPrometheus, erro
 	metrics.msgProducedError = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:      "messages_produced_errors_total",
 		Help:      "The number of errors producing messages to Kafka",
-		Namespace: "kafka",
+		Namespace: kafkaNamespace,
 	})
 
 	metrics.partitionAssignmentLost = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:      "partition_assignment_lost_total",
 		Help:      "Total number of lost partition assignments",
-		Namespace: "kafka",
+		Namespace: kafkaNamespace,
 	})
 
 	metrics.rebalance = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name:      "rebalance_total",
 		Help:      "Total number of rebalances",
-		Namespace: "kafka",
+		Namespace: kafkaNamespace,
 	}, []string{"reason"})
 
 	metrics.successfullyProducedMessage = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:      "message_produced_success_total",
 		Help:      "How many messages were produced successfully according to delivery reports",
-		Namespace: "kafka",
+		Namespace: kafkaNamespace,
 	})
 	metrics.unsuccessfullyProducedMessage = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:      "message_produced_fail_total",
 		Help:      "How many messages were produced unsuccessfully according to delivery reports",
-		Namespace: "kafka",
+		Namespace: kafkaNamespace,
 	})
 
 	err := errors.Join(
@@ -189,7 +193,7 @@ func setupBulkerPrometheus(promReg prometheus.Registerer, maxBulkerBytes, maxBul
 	metrics.flushedMsgs = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:                        "flushed_msgs",
 		Help:                        "Number of msgs flushed when bulking",
-		Namespace:                   "bulker",
+		Namespace:                   bulkerNamespace,
 		Buckets:                     computeBuckets(maxBulkerMsgs, bulkerBucketsDensity),
 		NativeHistogramBucketFactor: nativeHistogramBucketFactor,
 	})
@@ -197,7 +201,7 @@ func setupBulkerPrometheus(promReg prometheus.Registerer, maxBulkerBytes, maxBul
 	metrics.flushedBytes = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:                        "flushed_size_bytes",
 		Help:                        "Amount of bytes flushed when bulking",
-		Namespace:                   "bulker",
+		Namespace:                   bulkerNamespace,
 		Buckets:                     computeBuckets(maxBulkerBytes, bulkerBucketsDensity),
 		NativeHistogramBucketFactor: nativeHistogramBucketFactor,
 	})
@@ -205,7 +209,7 @@ func setupBulkerPrometheus(promReg prometheus.Registerer, maxBulkerBytes, maxBul
 	metrics.flushReason = *prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name:      "flushed_reason_total",
 		Help:      "Reason for a bulk flush",
-		Namespace: "bulker",
+		Namespace: bulkerNamespace,
 	}, []string{"reason"})
 
 	err := errors.Join(
@@ -226,7 +230,7 @@ func setupIndexerPrometheus(promReg prometheus.Registerer) (*indexerPrometheus, 
 	metrics.sessionIndexFailure = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:                        "failed_session_indexing_size_bytes",
 		Help:                        "Size in bytes of failed documents/sessions indexed",
-		Namespace:                   "indexer",
+		Namespace:                   indexerNamespace,
 		Buckets:                     computeBuckets(bytesBucketUpperLimit*bytesBucketScalingFactor, bytesBucketDensity),
 		NativeHistogramBucketFactor: nativeHistogramBucketFactor,
 	})
@@ -234,25 +238,25 @@ func setupIndexerPrometheus(promReg prometheus.Registerer) (*indexerPrometheus, 
 	metrics.esClientReload = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:      "es_client_reloaded_total",
 		Help:      "Number of times that the ES client was reloaded",
-		Namespace: "indexer",
+		Namespace: indexerNamespace,
 	})
 
 	metrics.bulkCall = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:      "bulk_calls_total",
 		Help:      "Number of ES bulk action calls",
-		Namespace: "indexer",
+		Namespace: indexerNamespace,
 	})
 
 	metrics.bulkCallError = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:      "bulk_call_errors_total",
 		Help:      "Number of ES bulk action calls with errors",
-		Namespace: "indexer",
+		Namespace: indexerNamespace,
 	})
 
 	metrics.bulkCallRetry = prometheus.NewCounter(prometheus.CounterOpts{
 		Name:      "bulk_call_retries_total",
 		Help:      "Number of ES bulk action call retries",
-		Namespace: "indexer",
+		Namespace: indexerNamespace,
 	})
 
 	err := errors.Join(
