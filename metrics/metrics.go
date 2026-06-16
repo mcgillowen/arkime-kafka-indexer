@@ -271,6 +271,7 @@ func setupIndexerPrometheus(promReg prometheus.Registerer) (*indexerPrometheus, 
 
 // fulfills the es.bulkerMetrics interface.
 func (bp *bulkerPrometheus) FlushReason(reason string) { bp.flushReason.WithLabelValues(reason).Inc() }
+
 func (bp *bulkerPrometheus) FlushedBytes(numBytes int) { bp.flushedBytes.Observe(float64(numBytes)) }
 func (bp *bulkerPrometheus) FlushedMsgs(numMsgs int)   { bp.flushedMsgs.Observe(float64(numMsgs)) }
 

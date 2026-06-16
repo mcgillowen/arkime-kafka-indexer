@@ -1,35 +1,70 @@
-version: '2'
+version: "2"
 run:
-  timeout: 5m
+  modules-download-mode: readonly
 linters:
-  enable:
-  - wsl_v5
+  default: all
   disable:
-  - noinlineerr
+    - cyclop
+    - depguard
+    - exhaustruct
+    - gocognit
+    - lll
+    - nlreturn
+    - noinlineerr
+    - wsl
+  settings:
+    funlen:
+      lines: 120
+      statements: 70
+    lll:
+      line-length: 135
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    paralleltest:
+      ignore-missing: true
+    varnamelen:
+      max-distance: 10
+      ignore-names:
+        - err
+        - wg
+        - ch
+        - in
+        - out
+        - tt
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - dupl
+          - funlen
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 formatters:
   enable:
-  - gci
-  - gofmt
-  - gofumpt
-  - goimports
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
   settings:
     gci:
       sections:
-      - standard
-      - default
-      - prefix(github.com/mcgillowen/arkime-kafka-indexer)
-      - blank
-      - dot
+        - standard
+        - default
+        - prefix(github.com/mcgillowen/arkime-kafka-indexer)
+        - blank
+        - dot
   exclusions:
     generated: lax
     paths:
-    - third_party$
-    - builtin$
-    - examples$
-linters-settings:
-  wsl_v5:
-    allow-first-in-block: true
-    allow-whole-block: false
-    branch-max-lines: 2
-issues:
-  exclude-use-default: true
+      - third_party$
+      - builtin$
+      - examples$

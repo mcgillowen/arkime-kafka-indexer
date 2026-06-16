@@ -93,55 +93,55 @@ go install github.com/mcgillowen/arkime-kafka-indexer@v0.1.2
 
 Configuration of the indexer is done using environment variables following the 12-factor app approach, documented at [12factor.net](https://12factor.net).
 
-| NAME                                  | VARIABLE                                  | TYPE          | DEFAULT                                                                     | DESCRIPTION                                                                      |
-|---------------------------------------|-------------------------------------------|---------------|-----------------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| Port                                  | PORT                                      | string        | 8080                                                                        | Port for the HTTP server                                                         |
-| LogLevel                              | LOG_LEVEL                                 | string        | debug                                                                       | The level to log at                                                              |
-| KafkaConsumerBrokers                  | KAFKA_CONSUMER_BROKERS                    | string        | localhost:9092                                                              | Kafka Broker to consume from                                                     |
-| KafkaConsumerTopic                    | KAFKA_CONSUMER_TOPIC                      | string        |                                                                             | Kafka topic to consume from                                                      |
-| KafkaConsumerGroupName                | KAFKA_CONSUMER_GROUP_NAME                 | string        |                                                                             | Name of the Kafka consumer group                                                 |
-| KafkaConsumerIncrementalRebalance     | KAFKA_CONSUMER_INCREMENTAL_REBALANCE      | bool          | false                                                                       | If the cooperative rebalancing strategy should be used                           |
-| KafkaProducerBrokers                  | KAFKA_PRODUCER_BROKERS                    | string        | localhost:9092                                                              | Kafka to produce to                                                              |
-| KafkaProducerTopic                    | KAFKA_PRODUCER_TOPIC                      | string        |                                                                             | Kafka topic to produce to                                                        |
-| KafkaSSLCALocation                    | KAFKA_SSL_CA_LOCATION                     | string        |                                                                             | Path to the CA cert used for signing certs                                       |
-| KafkaSSLCertLocation                  | KAFKA_SSL_CERT_LOCATION                   | string        |                                                                             | Path to the client certificate                                                   |
-| KafkaSSLKeyLocation                   | KAFKA_SSL_KEY_LOCATION                    | string        |                                                                             | Path to the client key                                                           |
-| KafkaSSLKeyPassword                   | KAFKA_SSL_KEY_PASSWORD                    | string        |                                                                             | Password of the client key                                                       |
-| KafkaProducerMessageTimeout           | KAFKA_PRODUCER_MSG_TIMEOUT                | time.Duration | 30s                                                                         | Produced message timeout                                                         |
-| KafkaProducerMessageRetries           | KAFKA_PRODUCER_MSG_RETRIES                | int           | 100                                                                         | Maximum of retries for a produced message                                        |
-| KafkaProducerQueueFullCooldown        | KAFKA_PRODUCER_FULL_QUEUE_COOLDOWN        | time.Duration | 1s                                                                          | How long to wait after a producer full queue error before retrying               |
-| KafkaProducerLogDeliveryReports       | KAFKA_PRODUCER_LOG_DELIVERY_REPORTS       | bool          | true                                                                        | Should the delivery reports be logged                                            |
-| KafkaSessionTimeout                   | KAFKA_SESSION_TIMEOUT                     | time.Duration | 6000ms                                                                      | Kafka session timeout length                                                     |
-| KafkaPollTimeout                      | KAFKA_POLL_TIMEOUT                        | time.Duration | 100ms                                                                       | Consumer polling timeout                                                         |
-| KafkaFlushInterval                    | KAFKA_FLUSH_INTERVAL                      | time.Duration | 100ms                                                                       | Timeout length when flushing Kafka messages at shutdown                          |
-| BulkerFlushInterval                   | BULKER_FLUSH_INTERVAL                     | time.Duration | 10s                                                                         | Maximum amount of time to buffer messages before sending them to ES              |
-| BulkerMaxMessages                     | BULKER_MAX_MESSAGES                       | int           | 100                                                                         | Maximum number of messages to buffer before sending them to ES                   |
-| BulkerMaxBytes                        | BULKER_MAX_BYTES                          | int           | 10_485_760                                                                  | Maximum number of bytes to buffer before sending them to ES                      |
-| BulkerMetricsDensity                  | BULKER_METRICS_DENSITY                    | int           | 10                                                                          | How dense the bulker metrics buckets should be                                   |
-| ElasticService                        | ELASTIC_SERVICE                           | string        |                                                                             | The address of an Elasticsearch node, the client will discover the rest of nodes |
-| ElasticServicePort                    | ELASTIC_SERVICE_PORT                      | string        | 9200                                                                        | The ES HTTP port                                                                 |
-| ElasticUseHTTPS                       | ELASTIC_USE_HTTPS                         | bool          | false                                                                       | Should the ES client communicate using HTTPS                                     |
-| ElasticUsername                       | ELASTIC_USERNAME                          | string        |                                                                             | The username for ES basic authentication                                         |
-| ElasticPassword                       | ELASTIC_PASSWORD                          | string        |                                                                             | The password for ES basic authentication                                         |
-| ElasticAPIKey                         | ELASTIC_API_KEY                           | string        |                                                                             | The API key for ES authentication                                                |
-| ElasticServiceToken                   | ELASTIC_SERVICE_TOKEN                     | string        |                                                                             | The service token for ES authentication                                          |
-| ElasticIndexerInstances               | ELASTIC_INDEXER_INSTANCES                 | int           | 1                                                                           | The number of parallel indexers to use                                           |
-| ElasticClientMaxRetries               | ELASTIC_CLIENT_MAX_RETRIES                | int           | 10                                                                          | Number of retries when communicating with ES                                     |
-| ElasticClientRetryStatuses            | ELASTIC_CLIENT_RETRY_STATUSES             | []int         | 502,503,504,429                                                             | Which HTTP status codes to retry                                                 |
-| ElasticClientDiscoverNodes            | ELASTIC_CLIENT_DISCOVER_NODES             | bool          | true                                                                        | Should the client discover the other ES nodes                                    |
-| ElasticClientDiscoverInterval         | ELASTIC_CLIENT_DISCOVER_INTERVAL          | time.Duration | 1h                                                                          | Interval between updates of the list of ES connections                           |
-| ElasticClientBulkTimeout              | ELASTIC_CLIENT_BULK_TIMEOUT               | time.Duration | 500ms                                                                       | The timeout duration for the Bulk call                                           |
-| ElasticClientMaxDeadPercentage        | ELASTIC_CLIENT_MAX_DEAD_PERCENTAGE        | int           | 20                                                                          | The maximum percentage of dead ES connections                                    |
-| ElasticTransportDialTimeout           | ELASTIC_TRANSPORT_DIAL_TIMEOUT            | time.Duration | 2s                                                                          |                                                                                  |
-| ElasticTransportDialKeepAlive         | ELASTIC_TRANSPORT_DIAL_KEEPALIVE          | time.Duration | 5s                                                                          |                                                                                  |
-| ElasticTransportMaxIdleConns          | ELASTIC_TRANSPORT_MAX_IDLE_CONNS          | int           | 100                                                                         |                                                                                  |
-| ElasticTransportMaxIdleConnsPerHost   | ELASTIC_TRANSPORT_MAX_IDLE_CONNS_PER_HOST | int           | 100                                                                         |                                                                                  |
-| ElasticTransportMaxConnsPerHost       | ELASTIC_TRANSPORT_MAX_CONNS_PER_HOST      | int           | 100                                                                         |                                                                                  |
-| ElasticTransportIdleConnTimeout       | ELASTIC_TRANSPORT_IDLE_CONN_TIMEOUT       | time.Duration | 10s                                                                         |                                                                                  |
-| ElasticTransportExpectContinueTimeout | ELASTIC_TRANSPORT_EXPECT_CONTINUE_TIMEOUT | time.Duration | 1s                                                                          |                                                                                  |
-| ConsumerChannelBufferSize             | CONSUMER_CHANNEL_BUFFER_SIZE              | int           | 10                                                                          |                                                                                  |
-| ErrorChannelBufferSize                | ERROR_CHANNEL_BUFFER_SIZE                 | int           | 10                                                                          |                                                                                  |
-| ProducerChannelBufferSize             | PRODUCER_CHANNEL_BUFFER_SIZE              | int           | 10                                                                          |                                                                                  |
+| NAME                                  | VARIABLE                                  | TYPE          | DEFAULT         | DESCRIPTION                                                                      |
+|---------------------------------------|-------------------------------------------|---------------|-----------------|----------------------------------------------------------------------------------|
+| Port                                  | PORT                                      | string        | 8080            | Port for the HTTP server                                                         |
+| LogLevel                              | LOG_LEVEL                                 | string        | debug           | The level to log at                                                              |
+| KafkaConsumerBrokers                  | KAFKA_CONSUMER_BROKERS                    | string        | localhost:9092  | Kafka Broker to consume from                                                     |
+| KafkaConsumerTopic                    | KAFKA_CONSUMER_TOPIC                      | string        |                 | Kafka topic to consume from                                                      |
+| KafkaConsumerGroupName                | KAFKA_CONSUMER_GROUP_NAME                 | string        |                 | Name of the Kafka consumer group                                                 |
+| KafkaConsumerIncrementalRebalance     | KAFKA_CONSUMER_INCREMENTAL_REBALANCE      | bool          | false           | If the cooperative rebalancing strategy should be used                           |
+| KafkaProducerBrokers                  | KAFKA_PRODUCER_BROKERS                    | string        | localhost:9092  | Kafka to produce to                                                              |
+| KafkaProducerTopic                    | KAFKA_PRODUCER_TOPIC                      | string        |                 | Kafka topic to produce to                                                        |
+| KafkaSSLCALocation                    | KAFKA_SSL_CA_LOCATION                     | string        |                 | Path to the CA cert used for signing certs                                       |
+| KafkaSSLCertLocation                  | KAFKA_SSL_CERT_LOCATION                   | string        |                 | Path to the client certificate                                                   |
+| KafkaSSLKeyLocation                   | KAFKA_SSL_KEY_LOCATION                    | string        |                 | Path to the client key                                                           |
+| KafkaSSLKeyPassword                   | KAFKA_SSL_KEY_PASSWORD                    | string        |                 | Password of the client key                                                       |
+| KafkaProducerMessageTimeout           | KAFKA_PRODUCER_MSG_TIMEOUT                | time.Duration | 30s             | Produced message timeout                                                         |
+| KafkaProducerMessageRetries           | KAFKA_PRODUCER_MSG_RETRIES                | int           | 100             | Maximum of retries for a produced message                                        |
+| KafkaProducerQueueFullCooldown        | KAFKA_PRODUCER_FULL_QUEUE_COOLDOWN        | time.Duration | 1s              | How long to wait after a producer full queue error before retrying               |
+| KafkaProducerLogDeliveryReports       | KAFKA_PRODUCER_LOG_DELIVERY_REPORTS       | bool          | true            | Should the delivery reports be logged                                            |
+| KafkaSessionTimeout                   | KAFKA_SESSION_TIMEOUT                     | time.Duration | 6000ms          | Kafka session timeout length                                                     |
+| KafkaPollTimeout                      | KAFKA_POLL_TIMEOUT                        | time.Duration | 100ms           | Consumer polling timeout                                                         |
+| KafkaFlushInterval                    | KAFKA_FLUSH_INTERVAL                      | time.Duration | 100ms           | Timeout length when flushing Kafka messages at shutdown                          |
+| BulkerFlushInterval                   | BULKER_FLUSH_INTERVAL                     | time.Duration | 10s             | Maximum amount of time to buffer messages before sending them to ES              |
+| BulkerMaxMessages                     | BULKER_MAX_MESSAGES                       | int           | 100             | Maximum number of messages to buffer before sending them to ES                   |
+| BulkerMaxBytes                        | BULKER_MAX_BYTES                          | int           | 10_485_760      | Maximum number of bytes to buffer before sending them to ES                      |
+| BulkerMetricsDensity                  | BULKER_METRICS_DENSITY                    | int           | 10              | How dense the bulker metrics buckets should be                                   |
+| ElasticService                        | ELASTIC_SERVICE                           | string        |                 | The address of an Elasticsearch node, the client will discover the rest of nodes |
+| ElasticServicePort                    | ELASTIC_SERVICE_PORT                      | string        | 9200            | The ES HTTP port                                                                 |
+| ElasticUseHTTPS                       | ELASTIC_USE_HTTPS                         | bool          | false           | Should the ES client communicate using HTTPS                                     |
+| ElasticUsername                       | ELASTIC_USERNAME                          | string        |                 | The username for ES basic authentication                                         |
+| ElasticPassword                       | ELASTIC_PASSWORD                          | string        |                 | The password for ES basic authentication                                         |
+| ElasticAPIKey                         | ELASTIC_API_KEY                           | string        |                 | The API key for ES authentication                                                |
+| ElasticServiceToken                   | ELASTIC_SERVICE_TOKEN                     | string        |                 | The service token for ES authentication                                          |
+| ElasticIndexerInstances               | ELASTIC_INDEXER_INSTANCES                 | int           | 1               | The number of parallel indexers to use                                           |
+| ElasticClientMaxRetries               | ELASTIC_CLIENT_MAX_RETRIES                | int           | 10              | Number of retries when communicating with ES                                     |
+| ElasticClientRetryStatuses            | ELASTIC_CLIENT_RETRY_STATUSES             | []int         | 502,503,504,429 | Which HTTP status codes to retry                                                 |
+| ElasticClientDiscoverNodes            | ELASTIC_CLIENT_DISCOVER_NODES             | bool          | true            | Should the client discover the other ES nodes                                    |
+| ElasticClientDiscoverInterval         | ELASTIC_CLIENT_DISCOVER_INTERVAL          | time.Duration | 1h              | Interval between updates of the list of ES connections                           |
+| ElasticClientBulkTimeout              | ELASTIC_CLIENT_BULK_TIMEOUT               | time.Duration | 500ms           | The timeout duration for the Bulk call                                           |
+| ElasticClientMaxDeadPercentage        | ELASTIC_CLIENT_MAX_DEAD_PERCENTAGE        | int           | 20              | The maximum percentage of dead ES connections                                    |
+| ElasticTransportDialTimeout           | ELASTIC_TRANSPORT_DIAL_TIMEOUT            | time.Duration | 2s              |                                                                                  |
+| ElasticTransportDialKeepAlive         | ELASTIC_TRANSPORT_DIAL_KEEPALIVE          | time.Duration | 5s              |                                                                                  |
+| ElasticTransportMaxIdleConns          | ELASTIC_TRANSPORT_MAX_IDLE_CONNS          | int           | 100             |                                                                                  |
+| ElasticTransportMaxIdleConnsPerHost   | ELASTIC_TRANSPORT_MAX_IDLE_CONNS_PER_HOST | int           | 100             |                                                                                  |
+| ElasticTransportMaxConnsPerHost       | ELASTIC_TRANSPORT_MAX_CONNS_PER_HOST      | int           | 100             |                                                                                  |
+| ElasticTransportIdleConnTimeout       | ELASTIC_TRANSPORT_IDLE_CONN_TIMEOUT       | time.Duration | 10s             |                                                                                  |
+| ElasticTransportExpectContinueTimeout | ELASTIC_TRANSPORT_EXPECT_CONTINUE_TIMEOUT | time.Duration | 1s              |                                                                                  |
+| ConsumerChannelBufferSize             | CONSUMER_CHANNEL_BUFFER_SIZE              | int           | 10              |                                                                                  |
+| ErrorChannelBufferSize                | ERROR_CHANNEL_BUFFER_SIZE                 | int           | 10              |                                                                                  |
+| ProducerChannelBufferSize             | PRODUCER_CHANNEL_BUFFER_SIZE              | int           | 10              |                                                                                  |
 
 
 ## Tasks
@@ -158,7 +158,7 @@ Installs the dependencies for building, formatting, linting, etc.
 # Installs gofumpt for formatting the source code with extra rules
 go install mvdan.cc/gofumpt@latest
 # Installs golangci-lint for linting, uses the .golangci.yaml
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.0.2
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/main/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.12.2
 # Installs the Go vulnerability checking tool
 go install golang.org/x/vuln/cmd/govulncheck@latest
 ```
@@ -210,7 +210,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.24.2 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.26.4 \
   --clean --skip=publish --snapshot
 ```
 
@@ -226,7 +226,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.24.2 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.26.4 \
   --clean --snapshot
 ```
 
@@ -241,7 +241,7 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.24.2 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.26.4 \
   --clean --skip=publish
 ```
 
@@ -259,6 +259,6 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v `pwd`:/go/src/github.com/mcgillowen/arkime-kafka-indexer \
   -w /go/src/github.com/mcgillowen/arkime-kafka-indexer \
-  ghcr.io/goreleaser/goreleaser-cross:v1.24.2 \
+  ghcr.io/goreleaser/goreleaser-cross:v1.26.4 \
   release --clean
 ```
