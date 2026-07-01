@@ -3,7 +3,7 @@ module github.com/mcgillowen/arkime-kafka-indexer
 go 1.26.0
 
 require (
-	github.com/confluentinc/confluent-kafka-go/v2 v2.14.2
+	github.com/confluentinc/confluent-kafka-go/v2 v2.15.0
 	github.com/elastic/elastic-transport-go/v8 v8.11.0
 	github.com/elastic/go-elasticsearch/v8 v8.19.6
 	github.com/goccy/go-json v0.10.6
